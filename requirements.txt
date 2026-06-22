@@ -1,0 +1,6 @@
+requests
+pyyaml
+google-generativeai
+supabase
+playwright
+python-dotenv

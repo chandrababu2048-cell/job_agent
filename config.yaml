@@ -1,0 +1,56 @@
+candidate:
+  name: Chandrababu Naidu Anakapalli
+  email: chandrababunaidu2048@gmail.com
+  phone: "203-814-5534"
+  location: Bridgeport, CT
+
+job_search:
+  titles:
+    - AI Engineer
+    - Data Scientist
+    - Software Engineer
+    - Machine Learning Engineer
+    - Full Stack Engineer
+    - Backend Engineer
+
+  locations:
+    - remote
+    - "Springfield, MA"
+    - "Bridgeport, CT"
+    - "Hartford, CT"
+    - "New York, NY"
+
+  remote_preference: remote_first   # remote_only | remote_first | open_to_relocation
+
+  keywords:
+    - AI
+    - LLM
+    - Python
+    - Claude
+    - machine learning
+    - REST API
+    - .NET
+    - React
+
+  exclude_keywords:
+    - senior director
+    - VP
+    - C-level
+    - principal architect
+
+  min_match_score: 7    # out of 10 — only apply if Gemini scores >= this
+
+  salary_min: 80000     # USD annual
+
+agent:
+  search_interval_hours: 4
+  max_applications_per_run: 10
+  gemini_model: gemini-1.5-flash
+
+resume:
+  master_md: resume/master_resume.md
+  master_html: resume/master_resume.html
+  output_dir: resume/tailored/
+
+database:
+  provider: supabase    # logs every application

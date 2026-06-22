@@ -1,0 +1,5 @@
+.env
+resume/tailored/
+__pycache__/
+*.pyc
+.DS_Store
