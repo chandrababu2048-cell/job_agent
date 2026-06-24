@@ -3,6 +3,8 @@ candidate:
   email: chandrababunaidu2048@gmail.com
   phone: "203-814-5534"
   location: Bridgeport, CT
+  linkedin: linkedin.com/in/chandra-a-084825244
+  github: github.com/chandrababu2048-cell/EduBridge
 
 job_search:
   titles:
@@ -12,15 +14,15 @@ job_search:
     - Machine Learning Engineer
     - Full Stack Engineer
     - Backend Engineer
+    - Data Engineer
+    - .NET Developer
+    - Frontend Developer
 
   locations:
     - remote
-    - "Springfield, MA"
-    - "Bridgeport, CT"
-    - "Hartford, CT"
-    - "New York, NY"
+    - usa
 
-  remote_preference: remote_first   # remote_only | remote_first | open_to_relocation
+  remote_preference: remote_first
 
   keywords:
     - AI
@@ -31,26 +33,38 @@ job_search:
     - REST API
     - .NET
     - React
+    - data
+    - engineer
 
   exclude_keywords:
     - senior director
     - VP
     - C-level
     - principal architect
+    - managing director
+    - chief
 
-  min_match_score: 7    # out of 10 — only apply if Gemini scores >= this
-
-  salary_min: 80000     # USD annual
+  min_stars: 4               # Gate 2 threshold — only 4★+ jobs shortlisted (out of 5)
+  salary_min: 0              # No salary floor — apply to all matching roles
 
 agent:
-  search_interval_hours: 4
-  max_applications_per_run: 10
-  gemini_model: gemini-1.5-flash
+  search_interval_minutes: 30       # run hunt cycle every 30 min
+  max_per_day: 8                    # daily application cap
+  max_per_week: 56                  # weekly cap → guarantees 50+ quality apps
+  gemini_flash_model: gemini-2.0-flash
+  gemini_pro_model: gemini-2.0-flash
+
+followup:
+  days_before_followup: 7
+  max_followups_per_job: 2
 
 resume:
   master_md: resume/master_resume.md
   master_html: resume/master_resume.html
   output_dir: resume/tailored/
 
+notifications:
+  gmail_to: chandrababunaidu2048@gmail.com
+
 database:
-  provider: supabase    # logs every application
+  provider: supabase

@@ -1,5 +1,24 @@
+# Secrets — NEVER commit
 .env
+gmail_credentials.json
+gmail_token.json
+
+# Generated files
 resume/tailored/
+logs/
+nohup.out
 __pycache__/
 *.pyc
+*.pyo
+*.pdf
+
+# Virtual environment
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
 .DS_Store
