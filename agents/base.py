@@ -40,12 +40,12 @@ _groq_lock = threading.Lock()
 
 
 def _groq_wait():
-    """Sliding-window rate limiter: max 25 calls per 60 seconds."""
+    """Sliding-window rate limiter: max 12 calls per 60 seconds (safe for free tier)."""
     with _groq_lock:
         now = time.time()
         _groq_times[:] = [t for t in _groq_times if now - t < 60]
-        if len(_groq_times) >= 25:
-            sleep_for = 60 - (now - _groq_times[0]) + 0.2
+        if len(_groq_times) >= 12:
+            sleep_for = 60 - (now - _groq_times[0]) + 0.5
             if sleep_for > 0:
                 time.sleep(sleep_for)
         _groq_times.append(time.time())

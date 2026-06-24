@@ -23,18 +23,23 @@ class ScoreAgent:
         self.min_stars = config["job_search"].get("min_stars", 4)
 
     def run(self, jobs):
-        # ── Gate 2: fast star rating on all jobs ──────────────────────────────
-        print(f"\n[ScoreAgent] Gate 2 — rating {len(jobs)} jobs (1-5★ threshold: {self.min_stars}★)…")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-            futures = {pool.submit(self._gate2_rate, job): job for job in jobs}
-            gate2_passed = []
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    result = future.result()
-                    if result:
-                        gate2_passed.append(result)
-                except Exception as e:
-                    print(f"  [Gate2 error] {e}")
+        # ── Gate 2: batch scoring (5 jobs per API call — 5x fewer requests) ──
+        batch_size = 5
+        batches = [jobs[i:i+batch_size] for i in range(0, len(jobs), batch_size)]
+        print(f"\n[ScoreAgent] Gate 2 — rating {len(jobs)} jobs in {len(batches)} batches "
+              f"(threshold: {self.min_stars}★)…")
+
+        gate2_passed = []
+        for i, batch in enumerate(batches):
+            try:
+                results = self._gate2_batch(batch)
+                gate2_passed.extend(r for r in results if r)
+                if (i + 1) % 10 == 0 or (i + 1) == len(batches):
+                    print(f"  [Gate2] {i+1}/{len(batches)} batches done "
+                          f"({(i+1)*5}/{len(jobs)} jobs) — {len(gate2_passed)} matches so far",
+                          flush=True)
+            except Exception as e:
+                print(f"  [Gate2 batch {i+1}] error: {e}", flush=True)
 
         gate2_passed.sort(key=lambda j: j["stars"], reverse=True)
         print(f"[ScoreAgent] Gate 2: {len(gate2_passed)}/{len(jobs)} rated {self.min_stars}★+")
@@ -66,45 +71,56 @@ class ScoreAgent:
 
         return qualified
 
-    # ── Gate 2: fast 1-5 star rating ──────────────────────────────────────────
+    # ── Gate 2: batch rating (5 jobs per call) ────────────────────────────────
 
-    def _gate2_rate(self, job):
-        prompt = f"""You are an expert technical recruiter. Rate this job match 1-5 stars.
+    def _gate2_batch(self, batch):
+        candidate_summary = self.master_resume[:600]
+        jobs_text = ""
+        for i, job in enumerate(batch, 1):
+            jobs_text += (f"\nJOB {i}: {job['title']} at {job['company']}\n"
+                          f"{job['description'][:600]}\n")
 
-CANDIDATE SUMMARY:
-{self.master_resume[:1200]}
+        prompt = f"""You are a technical recruiter. Rate each job for this candidate 1-5 stars.
 
-JOB: {job['title']} at {job['company']}
-DESCRIPTION:
-{job['description'][:1500]}
+CANDIDATE:
+{candidate_summary}
 
-Rate 1-5 stars based on: skills match, seniority fit, role alignment.
-4★ = strong match worth applying | 5★ = exceptional fit
+{jobs_text}
+Rate each job. 4★ = strong match | 5★ = exceptional. Only rate 4+ if genuinely competitive.
+work_type: Remote, Hybrid, Onsite, or Check JD
 
-Reply ONLY with valid JSON (no markdown):
-{{"stars": 4, "reason": "Strong Python/AI match", "work_type": "Remote"}}
-
-work_type must be exactly: Remote, Hybrid, Onsite, or Check JD"""
+Reply ONLY with a JSON array (no markdown):
+[{{"job": 1, "stars": 4, "reason": "Short reason", "work_type": "Remote"}}, ...]"""
 
         try:
-            text = call_llm_haiku(self.config, prompt, max_tokens=200)
+            text = call_llm_haiku(self.config, prompt, max_tokens=400)
             text = text.strip()
-            start = text.find("{")
-            end = text.rfind("}") + 1
-            if start != -1 and end > start:
+            start = text.find("[")
+            end   = text.rfind("]") + 1
+            if start == -1:
+                start = text.find("{")
+                end   = text.rfind("}") + 1
+                text  = "[" + text[start:end] + "]"
+            else:
                 text = text[start:end]
-            data = json.loads(text)
-            rating = int(data.get("stars", 0))
-            if rating < self.min_stars:
-                return None
-            job["stars"] = rating
-            job["match_score"] = rating * 2   # keep numeric for compatibility
-            job["match_reason"] = data.get("reason", "")
-            job["work_type"] = data.get("work_type", "Check JD")
-            return job
+            ratings = json.loads(text)
+
+            results = []
+            for r in ratings:
+                idx = int(r.get("job", 0)) - 1
+                if 0 <= idx < len(batch):
+                    rating = int(r.get("stars", 0))
+                    if rating >= self.min_stars:
+                        job = batch[idx]
+                        job["stars"]       = rating
+                        job["match_score"] = rating * 2
+                        job["match_reason"] = r.get("reason", "")
+                        job["work_type"]   = r.get("work_type", "Check JD")
+                        results.append(job)
+            return results
         except Exception as e:
-            print(f"  [Gate2:{job.get('company','?')}] error: {e}")
-            return None
+            print(f"  [Gate2 batch] parse error: {e}")
+            return []
 
     # ── Gate 3: deep recruiter analysis ───────────────────────────────────────
 

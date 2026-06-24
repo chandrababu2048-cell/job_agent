@@ -25,7 +25,8 @@ os.makedirs("logs", exist_ok=True)
 def _run(mode: str):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     print(f"\n[Scheduler] {ts} → {mode}", flush=True)
-    subprocess.run([sys.executable, "orchestrator.py", mode])
+    env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    subprocess.run([sys.executable, "-u", "orchestrator.py", mode], env=env)
 
 
 def hunt():    _run("--hunt")
