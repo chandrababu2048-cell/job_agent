@@ -34,7 +34,9 @@ def _gate1_pass(job, salary_min, exclude_keywords):
         return False
 
     # Description must be substantial (not a placeholder)
-    if len(job.get("description", "")) < 150:
+    # LinkedIn cards only carry "Title at Company" so use a lower bar for them
+    min_desc = 50 if job.get("source") == "LinkedIn" else 150
+    if len(job.get("description", "")) < min_desc:
         return False
 
     # No executive titles

@@ -36,6 +36,33 @@ CREATE TABLE IF NOT EXISTS job_applications (
 );
 CREATE INDEX IF NOT EXISTS idx_job_applications_applied_at ON job_applications (applied_at DESC);
 CREATE INDEX IF NOT EXISTS idx_job_applications_status    ON job_applications (status);
+
+CREATE TABLE IF NOT EXISTS company_research (
+    id            BIGSERIAL PRIMARY KEY,
+    company       TEXT UNIQUE NOT NULL,
+    research      TEXT,
+    researched_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS preference_decisions (
+    id            BIGSERIAL PRIMARY KEY,
+    job_id        TEXT,
+    decision      TEXT,
+    feedback      TEXT,
+    title         TEXT,
+    company       TEXT,
+    source        TEXT,
+    tech_keywords TEXT[],
+    match_score   NUMERIC,
+    decided_at    TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_preference_decisions_decided_at ON preference_decisions (decided_at DESC);
+
+CREATE TABLE IF NOT EXISTS user_preferences (
+    key        TEXT PRIMARY KEY,
+    value      JSONB,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 """
 
 

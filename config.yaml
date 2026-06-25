@@ -1,70 +1,59 @@
-candidate:
-  name: Chandrababu Naidu Anakapalli
-  email: chandrababunaidu2048@gmail.com
-  phone: "203-814-5534"
-  location: Bridgeport, CT
-  linkedin: linkedin.com/in/chandra-a-084825244
-  github: github.com/chandrababu2048-cell/EduBridge
-
-job_search:
-  titles:
-    - AI Engineer
-    - Data Scientist
-    - Software Engineer
-    - Machine Learning Engineer
-    - Full Stack Engineer
-    - Backend Engineer
-    - Data Engineer
-    - .NET Developer
-    - Frontend Developer
-
-  locations:
-    - remote
-    - usa
-
-  remote_preference: remote_first
-
-  keywords:
-    - AI
-    - LLM
-    - Python
-    - Claude
-    - machine learning
-    - REST API
-    - .NET
-    - React
-    - data
-    - engineer
-
-  exclude_keywords:
-    - senior director
-    - VP
-    - C-level
-    - principal architect
-    - managing director
-    - chief
-
-  min_stars: 4               # Gate 2 threshold — only 4★+ jobs shortlisted (out of 5)
-  salary_min: 0              # No salary floor — apply to all matching roles
-
 agent:
-  search_interval_minutes: 30       # run hunt cycle every 30 min
-  max_per_day: 8                    # daily application cap
-  max_per_week: 56                  # weekly cap → guarantees 50+ quality apps
   gemini_flash_model: gemini-2.0-flash
   gemini_pro_model: gemini-2.0-flash
-
+  max_per_day: 30
+  max_per_week: 210
+  search_interval_minutes: 30
+candidate:
+  email: chandrababunaidu2048@gmail.com
+  github: github.com/chandrababu2048-cell/EduBridge
+  linkedin: linkedin.com/in/chandra-a-084825244
+  location: Bridgeport, CT
+  name: Chandrababu Naidu Anakapalli
+  phone: 203-814-5534
+database:
+  provider: supabase
 followup:
   days_before_followup: 7
   max_followups_per_job: 2
-
-resume:
-  master_md: resume/master_resume.md
-  master_html: resume/master_resume.html
-  output_dir: resume/tailored/
-
+job_search:
+  exclude_keywords:
+  - senior director
+  - VP
+  - C-level
+  - principal architect
+  - managing director
+  - chief
+  keywords:
+  - AI
+  - LLM
+  - Python
+  - Claude
+  - machine learning
+  - REST API
+  - .NET
+  - React
+  - data
+  - engineer
+  locations:
+  - remote
+  - usa
+  min_stars: 4
+  remote_preference: remote_first
+  salary_min: 0
+  titles:
+  - AI Engineer
+  - Data Scientist
+  - Software Engineer
+  - Machine Learning Engineer
+  - Full Stack Engineer
+  - Backend Engineer
+  - Data Engineer
+  - .NET Developer
+  - Frontend Developer
 notifications:
   gmail_to: chandrababunaidu2048@gmail.com
-
-database:
-  provider: supabase
+resume:
+  master_html: resume/master_resume.html
+  master_md: resume/master_resume.md
+  output_dir: resume/tailored/
