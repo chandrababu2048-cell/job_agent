@@ -163,7 +163,7 @@ def run_hunt():
 
     print(f"[Orchestrator] Processing {len(to_process)} jobs now…\n")
 
-    # ── Step 4: Tailor → PDF → Apply (max 3 parallel) ─────────────────────────
+    # ── Step 4: Tailor → PDF → Apply (sequential — Groq rate limits prevent parallel) ──
     tailor    = TailorAgent(CONFIG, MASTER_RESUME)
     writer    = WriterAgent(CONFIG, MASTER_RESUME)
     reviewer  = ReviewAgent(CONFIG, MASTER_RESUME)
@@ -172,16 +172,13 @@ def run_hunt():
     notifier  = NotifyAgent(CONFIG)
 
     processed = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-        futures = {
-            pool.submit(_process_job, job, tailor, writer, reviewer,
-                        pdf_agent, apply_agt, tracker, notifier): job
-            for job in to_process
-        }
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            if result:
-                processed.append(result)
+    for i, job in enumerate(to_process):
+        print(f"\n[Orchestrator] Job {i+1}/{len(to_process)}: "
+              f"{job.get('title')} @ {job.get('company')}")
+        result = _process_job(job, tailor, writer, reviewer,
+                              pdf_agent, apply_agt, tracker, notifier)
+        if result:
+            processed.append(result)
 
     # ── Step 5: Summary ────────────────────────────────────────────────────────
     auto_applied  = [j for j in processed if j.get("apply_success")]
