@@ -69,7 +69,6 @@ class TrackerAgent:
             "gaps":                 job.get("gaps", []),
             "confidence":           job.get("confidence", ""),
             "recommendation":       job.get("recommendation", ""),
-            "ats_score":            str(job.get("ats_score", "")),
             "review_passed":        job.get("review_passed", True),
             "review_notes":         job.get("review_notes", ""),
             "review_flags":         job.get("review_flags", []),
@@ -79,7 +78,7 @@ class TrackerAgent:
             "salary_max":           job.get("salary_max"),
             "applied_at":           datetime.now(timezone.utc).isoformat(),
         }
-        self.db.table(TABLE).insert(record).execute()
+        self.db.table(TABLE).upsert(record, on_conflict="job_id").execute()
         print(f"[TrackerAgent] Logged: {job.get('company')} — {job.get('title')} ({status})")
 
     def update_status(self, job_id: str, status: str):
