@@ -18,7 +18,7 @@ followup:
   max_followups_per_job: 2
 job_search:
   exclude_keywords:
-  # Seniority — too senior
+  # Seniority — too senior / management
   - senior director
   - VP
   - C-level
@@ -33,6 +33,9 @@ job_search:
   - head of data
   - engineering manager
   - lead engineer
+  - tech lead
+  - engineering lead
+  - team lead
   # Wrong roles — not your target
   - react native
   - ios developer
@@ -46,9 +49,14 @@ job_search:
   - firmware engineer
   - java developer
   - ruby developer
+  - ruby on rails
+  - rails engineer
+  - rails developer
   - php developer
   - go developer
   - rust developer
+  - salesforce
+  - sap developer
   # Location/work-type filters
   - São Paulo
   - Florianópolis
