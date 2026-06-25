@@ -85,17 +85,18 @@ class HuntAgent:
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
             # Title-specific sources
             for title in self.titles:
-                tasks[pool.submit(self._indeed_rss, title)] = f"Indeed:{title}"
-                tasks[pool.submit(self._linkedin, title)] = f"LinkedIn:{title}"
+                tasks[pool.submit(self._linkedin, title)]    = f"LinkedIn:{title}"
                 if self.adzuna_app_id:
                     tasks[pool.submit(self._adzuna, title)] = f"Adzuna:{title}"
 
             # Keyword/category sources (search once, filter by keyword)
-            tasks[pool.submit(self._remotive)] = "Remotive"
-            tasks[pool.submit(self._remoteok)] = "RemoteOK"
+            tasks[pool.submit(self._remotive)]      = "Remotive"
+            tasks[pool.submit(self._remoteok)]      = "RemoteOK"
             tasks[pool.submit(self._weworkremotely)] = "WeWorkRemotely"
-            tasks[pool.submit(self._themuse)] = "TheMuse"
-            tasks[pool.submit(self._arbeitnow)] = "Arbeitnow"
+            tasks[pool.submit(self._themuse)]       = "TheMuse"
+            tasks[pool.submit(self._arbeitnow)]     = "Arbeitnow"
+            tasks[pool.submit(self._jobicy)]        = "Jobicy"
+            tasks[pool.submit(self._workingnomads)] = "WorkingNomads"
 
             raw = []
             for future in concurrent.futures.as_completed(tasks):
@@ -128,42 +129,73 @@ class HuntAgent:
               f"{len(passed)} passed Gate 1 ({rejected} rejected by hard rules)")
         return passed
 
-    # ── Source: Indeed RSS ────────────────────────────────────────────────────
+    # ── Source: Jobicy (free JSON API, full descriptions) ────────────────────
 
-    def _indeed_rss(self, title):
-        url = "https://www.indeed.com/rss"
-        params = {"q": title, "l": "remote", "sort": "date", "fromage": "1"}
+    def _jobicy(self):
         try:
-            resp = requests.get(url, params=params,
-                                headers={"User-Agent": "Mozilla/5.0"}, timeout=12)
+            resp = requests.get(
+                "https://jobicy.com/?feed=job_feed",
+                headers={"User-Agent": "Mozilla/5.0"}, timeout=12,
+            )
+            resp.raise_for_status()
             feed = feedparser.parse(resp.text)
             jobs = []
             for entry in feed.entries:
-                company = ""
-                source_tag = entry.get("source", {})
-                if isinstance(source_tag, dict):
-                    company = source_tag.get("value", "")
-                if not company:
-                    # try to parse "Company - Location" from title
-                    parts = entry.get("title", "").split(" - ")
-                    company = parts[1].strip() if len(parts) > 1 else ""
+                text = (entry.get("title", "") + " " + entry.get("summary", "")).lower()
+                if not any(kw.lower() in text for kw in self.keywords):
+                    continue
+                desc = BeautifulSoup(entry.get("summary", ""), "lxml").get_text(" ", strip=True)
                 jobs.append({
-                    "id": f"indeed_{hashlib.md5(entry.get('link','').encode()).hexdigest()[:12]}",
-                    "source": "Indeed",
-                    "title": entry.get("title", "").split(" - ")[0].strip(),
-                    "company": company,
-                    "location": entry.get("indeed_city", entry.get("location", "Remote")),
-                    "description": BeautifulSoup(entry.get("summary", ""), "lxml").get_text(" ", strip=True),
+                    "id": f"jobicy_{hashlib.md5(entry.get('link','').encode()).hexdigest()[:12]}",
+                    "source": "Jobicy",
+                    "title": entry.get("title", ""),
+                    "company": entry.get("author", entry.get("tags", [{}])[0].get("term", "") if entry.get("tags") else ""),
+                    "location": "Remote",
+                    "description": desc[:3000],
                     "url": entry.get("link", ""),
                     "salary_min": None,
                     "salary_max": None,
                     "posted_at": entry.get("published", ""),
-                    "searched_title": title,
+                    "searched_title": entry.get("title", ""),
                     "fetched_at": _now(),
                 })
             return jobs
         except Exception as e:
-            print(f"  [Indeed RSS:{title}] {e}")
+            print(f"  [Jobicy] {e}")
+            return []
+
+    # ── Source: Working Nomads (free JSON API) ────────────────────────────────
+
+    def _workingnomads(self):
+        try:
+            resp = requests.get(
+                "https://www.workingnomads.com/api/exposed_jobs/",
+                params={"category": "development"},
+                headers={"User-Agent": "Mozilla/5.0"}, timeout=12,
+            )
+            resp.raise_for_status()
+            jobs = []
+            for item in resp.json():
+                text = (item.get("title", "") + " " + item.get("description", "")).lower()
+                if not any(kw.lower() in text for kw in self.keywords):
+                    continue
+                jobs.append({
+                    "id": f"wn_{hashlib.md5(item.get('url','').encode()).hexdigest()[:12]}",
+                    "source": "WorkingNomads",
+                    "title": item.get("title", ""),
+                    "company": item.get("company", ""),
+                    "location": "Remote",
+                    "description": BeautifulSoup(item.get("description", ""), "lxml").get_text(" ", strip=True)[:3000],
+                    "url": item.get("url", ""),
+                    "salary_min": None,
+                    "salary_max": None,
+                    "posted_at": item.get("pub_date", ""),
+                    "searched_title": item.get("title", ""),
+                    "fetched_at": _now(),
+                })
+            return jobs
+        except Exception as e:
+            print(f"  [WorkingNomads] {e}")
             return []
 
     # ── Source: LinkedIn Jobs Guest API ──────────────────────────────────────

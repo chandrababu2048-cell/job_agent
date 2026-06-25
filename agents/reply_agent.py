@@ -47,15 +47,28 @@ class ReplyAgent:
         print(f"[ReplyAgent] {len(threads)} reply thread(s) found")
 
         for thread in threads:
+            tid = thread["id"]
             try:
-                body = self.gmail.get_reply_body(thread["id"])
+                # Skip threads already processed
+                seen = (self._db.table("processed_reply_threads")
+                        .select("thread_id").eq("thread_id", tid)
+                        .execute().data)
+                if seen:
+                    continue
+
+                body = self.gmail.get_reply_body(tid)
                 if not body:
                     continue
                 actions = self._parse(body)
                 for action in actions:
                     self._execute(action, counts)
+
+                # Mark as processed so we never re-run this thread
+                self._db.table("processed_reply_threads").upsert(
+                    {"thread_id": tid}, on_conflict="thread_id"
+                ).execute()
             except Exception as e:
-                print(f"[ReplyAgent] Thread {thread.get('id','?')}: {e}")
+                print(f"[ReplyAgent] Thread {tid}: {e}")
                 counts["errors"] += 1
 
         print(f"[ReplyAgent] Done — YES:{counts['yes']} NO:{counts['no']} EDIT:{counts['edit']}")

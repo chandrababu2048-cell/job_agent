@@ -65,7 +65,9 @@ class ScoreAgent:
         return top
 
     def _score(self, job):
-        text = (job.get("title", "") + " " + job.get("description", "")).lower()
+        title_lower = job.get("title", "").lower()
+        desc_lower  = job.get("description", "").lower()
+        text = title_lower + " " + desc_lower
 
         # Must match at least one core skill — filters out pure DevOps/mobile/infra
         if not any(kw in text for kw in KEYWORDS_CORE):
@@ -81,6 +83,11 @@ class ScoreAgent:
             if kw in text:
                 score += 1
                 matched.append(kw)
+
+        # Title bonus: LinkedIn/ZipRecruiter jobs have short descriptions;
+        # boost when the JOB TITLE itself names a core skill so they survive scoring
+        if any(kw in title_lower for kw in KEYWORDS_CORE):
+            score += 6
 
         if   score >= 12: star = 5
         elif score >= 8:  star = 4
