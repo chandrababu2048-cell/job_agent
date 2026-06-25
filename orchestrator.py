@@ -362,7 +362,7 @@ def run_test():
         from agents.hunt_agent  import HuntAgent
         from agents.score_agent import ScoreAgent
         hunter = HuntAgent(CONFIG)
-        scorer = ScoreAgent(CONFIG)
+        scorer = ScoreAgent(CONFIG, MASTER_RESUME)
         sample = hunter._remotive()[:3]
         if not sample:
             titles = CONFIG.get("search", {}).get("titles", ["AI Engineer"])
