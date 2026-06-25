@@ -1,8 +1,8 @@
 agent:
   gemini_flash_model: gemini-2.0-flash
   gemini_pro_model: gemini-2.0-flash
-  max_per_day: 30
-  max_per_week: 210
+  max_per_day: 20
+  max_per_week: 140
   search_interval_minutes: 30
 candidate:
   email: chandrababunaidu2048@gmail.com
@@ -24,6 +24,24 @@ job_search:
   - principal architect
   - managing director
   - chief
+  # Location/work-type filters
+  - São Paulo
+  - Florianópolis
+  - Brazil
+  - LATAM
+  - Latin America
+  - Europe only
+  - Poland
+  - Germany
+  - India only
+  # Role filters
+  - Web3
+  - crypto
+  - blockchain
+  - solidity
+  - freelance only
+  - contract only
+  - 1099 only
   keywords:
   - AI
   - LLM
