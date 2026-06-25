@@ -239,17 +239,12 @@ class ApplyAgent:
     # ── Browser fallback (LinkedIn, Indeed, Unknown) ───────────────────────────
 
     def _open_browser(self, job: dict) -> dict:
-        import subprocess
         url = job.get("url", "")
-        try:
-            subprocess.Popen(["open", url])
-        except Exception:
-            pass
-        print(f"  [ApplyAgent] 🖱️  Browser opened for semi-auto: {job['company']}")
+        print(f"  [ApplyAgent] 🖱️  Queued for 1-click: {job['company']} — {url[:60]}")
         return {
             "success":  False,
-            "method":   "semi_auto",
-            "notes":    f"Browser opened — apply at {url}",
+            "method":   "needs_1click",
+            "notes":    f"Apply at: {url}",
         }
 
     # ── Helpers ────────────────────────────────────────────────────────────────
