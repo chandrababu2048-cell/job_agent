@@ -56,7 +56,7 @@ def _groq_wait():
 def _call_groq(prompt, model="llama-3.1-8b-instant", max_tokens=1024):
     _groq_wait()
     client = _get_groq()
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             resp = client.chat.completions.create(
                 model=model,
@@ -68,21 +68,21 @@ def _call_groq(prompt, model="llama-3.1-8b-instant", max_tokens=1024):
         except Exception as e:
             err = str(e).lower()
             if "rate" in err or "429" in err or "quota" in err:
-                wait = 20 * (2 ** attempt)
+                wait = 8 * (attempt + 1)   # 8s, 16s — fail fast
                 print(f"[LLM:Groq] Rate limited, retrying in {wait}s...")
                 time.sleep(wait)
-            elif attempt == 2:
+            elif attempt == 1:
                 raise
             else:
-                time.sleep(3)
-    raise RuntimeError("Groq call failed after 3 attempts")
+                time.sleep(2)
+    raise RuntimeError("Groq quota exhausted")
 
 
 def _call_gemini(config, prompt, model=None, max_tokens=4096):
     client = _get_gemini()
     if model is None:
         model = config["agent"].get("gemini_flash_model", "gemini-2.0-flash")
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             resp = client.models.generate_content(
                 model=model,
@@ -96,14 +96,14 @@ def _call_gemini(config, prompt, model=None, max_tokens=4096):
         except Exception as e:
             err = str(e).lower()
             if "quota" in err or "rate" in err or "429" in err:
-                wait = 30 * (2 ** attempt)
+                wait = 10 * (attempt + 1)  # 10s, 20s — fail fast
                 print(f"[LLM:Gemini] Rate limited, retrying in {wait}s...")
                 time.sleep(wait)
-            elif attempt == 2:
+            elif attempt == 1:
                 raise
             else:
-                time.sleep(5)
-    raise RuntimeError("Gemini call failed after 3 attempts")
+                time.sleep(3)
+    raise RuntimeError("Gemini quota exhausted")
 
 
 # ── Public API (used by all agents) ───────────────────────────────────────────
