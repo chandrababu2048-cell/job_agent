@@ -1,8 +1,26 @@
 import json
+import re
 import concurrent.futures
-from .base import call_llm_haiku, call_llm_sonnet
+from .base import call_llm_sonnet
 
 STAR_ICONS = {5: "⭐⭐⭐⭐⭐", 4: "⭐⭐⭐⭐☆", 3: "⭐⭐⭐☆☆", 2: "⭐⭐☆☆☆", 1: "⭐☆☆☆☆"}
+
+# ── Keyword tiers for zero-API Gate 2 scoring ─────────────────────────────────
+# Tier A: core skills (2 pts each) — must match to get 4★+
+KEYWORDS_A = {
+    "python", "machine learning", "ai", "artificial intelligence", "llm",
+    "large language model", "nlp", "deep learning", "data science", "ml",
+    ".net", "c#", "react", "sql", "azure", "aws", "cloud",
+    "software engineer", "backend", "full stack", "fullstack", "api",
+}
+# Tier B: supporting skills (1 pt each)
+KEYWORDS_B = {
+    "typescript", "javascript", "node", "postgresql", "mongodb", "docker",
+    "kubernetes", "terraform", "pytorch", "tensorflow", "transformers",
+    "genai", "generative ai", "rag", "langchain", "openai", "gpt",
+    "neural network", "computer vision", "data engineer", "devops", "ci/cd",
+    "rest", "microservices", "django", "fastapi", "next.js", "prompt",
+}
 
 
 def stars(n):
@@ -23,23 +41,15 @@ class ScoreAgent:
         self.min_stars = config["job_search"].get("min_stars", 4)
 
     def run(self, jobs):
-        # ── Gate 2: batch scoring (5 jobs per API call — 5x fewer requests) ──
-        batch_size = 5
-        batches = [jobs[i:i+batch_size] for i in range(0, len(jobs), batch_size)]
-        print(f"\n[ScoreAgent] Gate 2 — rating {len(jobs)} jobs in {len(batches)} batches "
-              f"(threshold: {self.min_stars}★)…")
+        # ── Gate 2: keyword scoring (zero API calls — instant) ────────────────
+        print(f"\n[ScoreAgent] Gate 2 — keyword scoring {len(jobs)} jobs "
+              f"(threshold: {self.min_stars}★, no API calls)…")
 
         gate2_passed = []
-        for i, batch in enumerate(batches):
-            try:
-                results = self._gate2_batch(batch)
-                gate2_passed.extend(r for r in results if r)
-                if (i + 1) % 10 == 0 or (i + 1) == len(batches):
-                    print(f"  [Gate2] {i+1}/{len(batches)} batches done "
-                          f"({(i+1)*5}/{len(jobs)} jobs) — {len(gate2_passed)} matches so far",
-                          flush=True)
-            except Exception as e:
-                print(f"  [Gate2 batch {i+1}] error: {e}", flush=True)
+        for job in jobs:
+            rated = self._gate2_keyword(job)
+            if rated:
+                gate2_passed.append(rated)
 
         gate2_passed.sort(key=lambda j: j["stars"], reverse=True)
         print(f"[ScoreAgent] Gate 2: {len(gate2_passed)}/{len(jobs)} rated {self.min_stars}★+")
@@ -71,56 +81,36 @@ class ScoreAgent:
 
         return qualified
 
-    # ── Gate 2: batch rating (5 jobs per call) ────────────────────────────────
+    # ── Gate 2: instant keyword scoring (no API calls) ────────────────────────
 
-    def _gate2_batch(self, batch):
-        candidate_summary = self.master_resume[:600]
-        jobs_text = ""
-        for i, job in enumerate(batch, 1):
-            jobs_text += (f"\nJOB {i}: {job['title']} at {job['company']}\n"
-                          f"{job['description'][:600]}\n")
+    def _gate2_keyword(self, job):
+        text = (job.get("title", "") + " " + job.get("description", "")).lower()
+        score = 0
+        matched_a, matched_b = [], []
+        for kw in KEYWORDS_A:
+            if kw in text:
+                score += 2
+                matched_a.append(kw)
+        for kw in KEYWORDS_B:
+            if kw in text:
+                score += 1
+                matched_b.append(kw)
 
-        prompt = f"""You are a technical recruiter. Rate each job for this candidate 1-5 stars.
+        # Map score → stars: 0-3=1★, 4-5=2★, 6-7=3★, 8-11=4★, 12+=5★
+        if   score >= 12: star = 5
+        elif score >= 8:  star = 4
+        elif score >= 6:  star = 3
+        elif score >= 4:  star = 2
+        else:             star = 1
 
-CANDIDATE:
-{candidate_summary}
+        if star < self.min_stars:
+            return None
 
-{jobs_text}
-Rate each job. 4★ = strong match | 5★ = exceptional. Only rate 4+ if genuinely competitive.
-work_type: Remote, Hybrid, Onsite, or Check JD
-
-Reply ONLY with a JSON array (no markdown):
-[{{"job": 1, "stars": 4, "reason": "Short reason", "work_type": "Remote"}}, ...]"""
-
-        try:
-            text = call_llm_haiku(self.config, prompt, max_tokens=400)
-            text = text.strip()
-            start = text.find("[")
-            end   = text.rfind("]") + 1
-            if start == -1:
-                start = text.find("{")
-                end   = text.rfind("}") + 1
-                text  = "[" + text[start:end] + "]"
-            else:
-                text = text[start:end]
-            ratings = json.loads(text)
-
-            results = []
-            for r in ratings:
-                idx = int(r.get("job", 0)) - 1
-                if 0 <= idx < len(batch):
-                    rating = int(r.get("stars", 0))
-                    if rating >= self.min_stars:
-                        job = batch[idx]
-                        job["stars"]       = rating
-                        job["match_score"] = rating * 2
-                        job["match_reason"] = r.get("reason", "")
-                        job["work_type"]   = r.get("work_type", "Check JD")
-                        results.append(job)
-            return results
-        except Exception as e:
-            print(f"  [Gate2 batch] parse error: {e}")
-            return []
+        job["stars"]       = star
+        job["match_score"] = score
+        job["match_reason"] = f"Keyword match: {', '.join(matched_a[:4])}"
+        job["work_type"]   = job.get("work_type", "Check JD")
+        return job
 
     # ── Gate 3: deep recruiter analysis ───────────────────────────────────────
 
