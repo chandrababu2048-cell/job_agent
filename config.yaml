@@ -18,12 +18,37 @@ followup:
   max_followups_per_job: 2
 job_search:
   exclude_keywords:
+  # Seniority — too senior
   - senior director
   - VP
   - C-level
   - principal architect
   - managing director
   - chief
+  - staff engineer
+  - staff software
+  - principal engineer
+  - principal software
+  - head of engineering
+  - head of data
+  - engineering manager
+  - lead engineer
+  # Wrong roles — not your target
+  - react native
+  - ios developer
+  - android developer
+  - mobile developer
+  - devops engineer
+  - site reliability
+  - platform engineer
+  - network engineer
+  - embedded engineer
+  - firmware engineer
+  - java developer
+  - ruby developer
+  - php developer
+  - go developer
+  - rust developer
   # Location/work-type filters
   - São Paulo
   - Florianópolis
@@ -34,7 +59,7 @@ job_search:
   - Poland
   - Germany
   - India only
-  # Role filters
+  # Work-type filters
   - Web3
   - crypto
   - blockchain

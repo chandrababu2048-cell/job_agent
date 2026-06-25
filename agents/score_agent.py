@@ -3,20 +3,28 @@ import concurrent.futures
 
 STAR_ICONS = {5: "⭐⭐⭐⭐⭐", 4: "⭐⭐⭐⭐☆", 3: "⭐⭐⭐☆☆", 2: "⭐⭐☆☆☆", 1: "⭐☆☆☆☆"}
 
-# Tier A: core skills worth 2 pts each
+# CORE skills — job must match at least 1 of these or it's rejected outright
+KEYWORDS_CORE = {
+    "python", "machine learning", "artificial intelligence", "llm",
+    "large language model", "nlp", "deep learning", "data science",
+    ".net", "c#", "asp.net", "react", "sql", "software engineer",
+    "full stack", "fullstack", "ai engineer", "ml engineer",
+    "data scientist", "backend engineer",
+}
+# Tier A: strong matches worth 2 pts each
 KEYWORDS_A = {
     "python", "machine learning", "ai", "artificial intelligence", "llm",
     "large language model", "nlp", "deep learning", "data science", "ml",
-    ".net", "c#", "react", "sql", "azure", "aws", "cloud",
+    ".net", "c#", "react", "sql", "azure", "aws",
     "software engineer", "backend", "full stack", "fullstack", "api",
 }
 # Tier B: supporting skills worth 1 pt each
 KEYWORDS_B = {
     "typescript", "javascript", "node", "postgresql", "mongodb", "docker",
-    "kubernetes", "terraform", "pytorch", "tensorflow", "transformers",
-    "generative ai", "rag", "langchain", "openai", "gpt", "genai",
-    "neural network", "computer vision", "data engineer", "devops", "ci/cd",
-    "rest", "microservices", "django", "fastapi", "next.js", "prompt",
+    "pytorch", "tensorflow", "transformers", "generative ai", "rag",
+    "langchain", "openai", "gpt", "genai", "neural network",
+    "data engineer", "ci/cd", "rest", "microservices", "django",
+    "fastapi", "next.js", "prompt", "cloud", "supabase",
 }
 
 
@@ -58,6 +66,10 @@ class ScoreAgent:
 
     def _score(self, job):
         text = (job.get("title", "") + " " + job.get("description", "")).lower()
+
+        # Must match at least one core skill — filters out pure DevOps/mobile/infra
+        if not any(kw in text for kw in KEYWORDS_CORE):
+            return None
 
         score = 0
         matched = []
