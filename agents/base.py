@@ -33,8 +33,11 @@ def _get_groq():
     return _groq_client
 
 
-# ── Groq rate limiter (30 RPM free tier → cap at 25 RPM for safety) ───────────
+# ── Circuit breakers — flip to False when quota exhausted, reset next session ──
+_gemini_ok = True
+_groq_ok   = True
 
+# ── Groq rate limiter ──────────────────────────────────────────────────────────
 _groq_times = []
 _groq_lock = threading.Lock()
 
@@ -54,6 +57,9 @@ def _groq_wait():
 # ── Provider calls ─────────────────────────────────────────────────────────────
 
 def _call_groq(prompt, model="llama-3.1-8b-instant", max_tokens=1024):
+    global _groq_ok
+    if not _groq_ok:
+        raise RuntimeError("Groq quota exhausted (circuit open)")
     _groq_wait()
     client = _get_groq()
     for attempt in range(2):
@@ -68,7 +74,11 @@ def _call_groq(prompt, model="llama-3.1-8b-instant", max_tokens=1024):
         except Exception as e:
             err = str(e).lower()
             if "rate" in err or "429" in err or "quota" in err:
-                wait = 8 * (attempt + 1)   # 8s, 16s — fail fast
+                if attempt == 1:
+                    _groq_ok = False
+                    print("[LLM:Groq] Quota exhausted — circuit open for this session")
+                    raise RuntimeError("Groq quota exhausted")
+                wait = 8
                 print(f"[LLM:Groq] Rate limited, retrying in {wait}s...")
                 time.sleep(wait)
             elif attempt == 1:
@@ -79,6 +89,9 @@ def _call_groq(prompt, model="llama-3.1-8b-instant", max_tokens=1024):
 
 
 def _call_gemini(config, prompt, model=None, max_tokens=4096):
+    global _gemini_ok
+    if not _gemini_ok:
+        raise RuntimeError("Gemini quota exhausted (circuit open)")
     client = _get_gemini()
     if model is None:
         model = config["agent"].get("gemini_flash_model", "gemini-2.0-flash")
@@ -96,7 +109,11 @@ def _call_gemini(config, prompt, model=None, max_tokens=4096):
         except Exception as e:
             err = str(e).lower()
             if "quota" in err or "rate" in err or "429" in err:
-                wait = 10 * (attempt + 1)  # 10s, 20s — fail fast
+                if attempt == 1:
+                    _gemini_ok = False
+                    print("[LLM:Gemini] Quota exhausted — circuit open for this session")
+                    raise RuntimeError("Gemini quota exhausted")
+                wait = 10
                 print(f"[LLM:Gemini] Rate limited, retrying in {wait}s...")
                 time.sleep(wait)
             elif attempt == 1:
