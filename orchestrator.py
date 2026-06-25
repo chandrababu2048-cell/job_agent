@@ -2,6 +2,7 @@
 Job Agent v2 — Orchestrator
 ════════════════════════════
 Modes:
+  python orchestrator.py --test          (health check all connections ~30s)
   python orchestrator.py --hunt          (find + shortlist + email digest)
   python orchestrator.py --tailor        (tailor + apply all approved jobs)
   python orchestrator.py --tailor --job-ids id1 id2 ...  (specific jobs)
@@ -284,13 +285,144 @@ def run_weekly():
     notifier.send_weekly_report(stats)
 
 
+# ── HEALTH CHECK ─────────────────────────────────────────────────────────────
+
+def run_test():
+    """Quick health check — verifies every connection in ~30 seconds."""
+    print("\n" + "═" * 60)
+    print("  JOB AGENT v2 — Health Check")
+    print("═" * 60)
+
+    results = {}
+
+    # 1. Env vars
+    required = ["GEMINI_API_KEY", "GROQ_API_KEY", "SUPABASE_URL", "SUPABASE_KEY",
+                "NOTIFY_EMAIL"]
+    optional = ["RESEND_API_KEY", "ADZUNA_APP_ID", "ADZUNA_API_KEY"]
+    missing  = [k for k in required if not os.environ.get(k)]
+    if missing:
+        print(f"  ❌  Env vars missing: {', '.join(missing)}")
+        results["env"] = False
+    else:
+        print(f"  ✅  Env vars: all required set")
+        for k in optional:
+            if not os.environ.get(k):
+                print(f"  ⚠️   Optional missing: {k}")
+        results["env"] = True
+
+    # 2. LLM (small call)
+    print("\n  Testing LLM router…")
+    try:
+        from agents.base import call_llm_haiku, llm_status
+        reply = call_llm_haiku(CONFIG, "Say exactly: AGENT_OK", max_tokens=20)
+        print(f"  ✅  LLM response: '{reply[:40]}'")
+        status = llm_status()
+        for p, s in status.items():
+            print(f"       {p}: {s['used']}/{s['limit']} calls used today")
+        results["llm"] = True
+    except Exception as e:
+        print(f"  ❌  LLM error: {e}")
+        results["llm"] = False
+
+    # 3. Supabase
+    print("\n  Testing Supabase…")
+    try:
+        from agents.tracker_agent import TrackerAgent
+        tracker = TrackerAgent()
+        count   = tracker.get_daily_count()
+        print(f"  ✅  Supabase connected — {count} jobs logged today")
+        results["supabase"] = True
+    except Exception as e:
+        print(f"  ❌  Supabase error: {e}")
+        print(f"       → Run 'python migrate.py' or paste MIGRATION_SQL from")
+        print(f"         agents/tracker_agent.py into your Supabase SQL Editor")
+        results["supabase"] = False
+
+    # 4. Gmail
+    print("\n  Testing Gmail…")
+    gmail_token = os.environ.get("GMAIL_TOKEN_PATH", "gmail_token.json")
+    if not os.path.exists(gmail_token):
+        print(f"  ⚠️   Gmail not authorised yet — run this once:")
+        print(f"       python -c \"from agents.gmail_agent import GmailAgent; GmailAgent()._authenticate()\"")
+        results["gmail"] = False
+    else:
+        try:
+            from agents.gmail_agent import GmailAgent
+            gm      = GmailAgent()
+            threads = gm.search_threads("in:inbox", max_results=1)
+            print(f"  ✅  Gmail connected — inbox accessible")
+            results["gmail"] = True
+        except Exception as e:
+            print(f"  ❌  Gmail error: {e}")
+            results["gmail"] = False
+
+    # 5. Job search (1 source, 3 results — no DB writes)
+    print("\n  Testing job search (3 results, no apply)…")
+    try:
+        from agents.hunt_agent  import HuntAgent
+        from agents.score_agent import ScoreAgent
+        hunter = HuntAgent(CONFIG)
+        scorer = ScoreAgent(CONFIG)
+        sample = hunter._remotive()[:3]
+        if not sample:
+            titles = CONFIG.get("search", {}).get("titles", ["AI Engineer"])
+            sample = hunter._indeed_rss(titles[0])[:3]
+        scored = []
+        for j in sample[:3]:
+            try:
+                scored.append(scorer.run(j))
+            except Exception:
+                scored.append(j)
+        print(f"  ✅  Found {len(scored)} sample jobs:")
+        for j in scored:
+            score = j.get("match_score", "?")
+            print(f"       [{score}] {j.get('title','?')} @ {j.get('company','?')}")
+        results["hunt"] = True
+    except Exception as e:
+        print(f"  ❌  Job search error: {e}")
+        results["hunt"] = False
+
+    # 6. Email send (optional — only if RESEND_API_KEY set)
+    if os.environ.get("RESEND_API_KEY"):
+        print("\n  Testing email send…")
+        try:
+            import resend
+            resend.api_key = os.environ["RESEND_API_KEY"]
+            to_email = os.environ.get("NOTIFY_EMAIL", "")
+            resend.Emails.send({
+                "from": "Job Agent <onboarding@resend.dev>",
+                "to":   [to_email],
+                "subject": "[Job Agent] Health Check ✅",
+                "html": "<p>Job Agent health check passed. Everything is working.</p>",
+            })
+            print(f"  ✅  Test email sent to {to_email}")
+            results["email"] = True
+        except Exception as e:
+            print(f"  ❌  Email error: {e}")
+            results["email"] = False
+
+    # Summary
+    passed = sum(1 for v in results.values() if v)
+    total  = len(results)
+    print(f"\n{'═'*60}")
+    print(f"  Health Check: {passed}/{total} passed")
+    if all(results.values()):
+        print("  ✅  All systems GO — run 'python scheduler.py' to start")
+    else:
+        failed = [k for k, v in results.items() if not v]
+        print(f"  ⚠️   Fix these before starting: {', '.join(failed)}")
+    print("═" * 60)
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     args = sys.argv[1:]
     mode = args[0] if args else "--hunt"
 
-    if mode == "--tailor":
+    if mode == "--test":
+        run_test()
+    elif mode == "--tailor":
         job_ids = None
         if "--job-ids" in args:
             idx = args.index("--job-ids")
