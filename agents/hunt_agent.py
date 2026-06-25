@@ -77,6 +77,7 @@ class HuntAgent:
         self.exclude_kw = config["job_search"].get("exclude_keywords", [])
         self.adzuna_app_id = os.environ.get("ADZUNA_APP_ID", "")
         self.adzuna_api_key = os.environ.get("ADZUNA_API_KEY", "")
+        self.brave_api_key = os.environ.get("BRAVE_API_KEY", "")
 
     def run(self):
         print("[HuntAgent] Searching all sources in parallel…")
@@ -90,13 +91,18 @@ class HuntAgent:
                     tasks[pool.submit(self._adzuna, title)] = f"Adzuna:{title}"
 
             # Keyword/category sources (search once, filter by keyword)
-            tasks[pool.submit(self._remotive)]      = "Remotive"
-            tasks[pool.submit(self._remoteok)]      = "RemoteOK"
+            tasks[pool.submit(self._remotive)]       = "Remotive"
+            tasks[pool.submit(self._remoteok)]       = "RemoteOK"
             tasks[pool.submit(self._weworkremotely)] = "WeWorkRemotely"
-            tasks[pool.submit(self._themuse)]       = "TheMuse"
-            tasks[pool.submit(self._arbeitnow)]     = "Arbeitnow"
-            tasks[pool.submit(self._jobicy)]        = "Jobicy"
-            tasks[pool.submit(self._workingnomads)] = "WorkingNomads"
+            tasks[pool.submit(self._themuse)]        = "TheMuse"
+            tasks[pool.submit(self._arbeitnow)]      = "Arbeitnow"
+            tasks[pool.submit(self._jobicy)]         = "Jobicy"
+            tasks[pool.submit(self._workingnomads)]  = "WorkingNomads"
+
+            # Brave Search — searches real career sites (Greenhouse/Lever/Ashby)
+            if self.brave_api_key:
+                for title in self.titles:
+                    tasks[pool.submit(self._brave_search, title)] = f"Brave:{title}"
 
             raw = []
             for future in concurrent.futures.as_completed(tasks):
@@ -472,3 +478,76 @@ class HuntAgent:
         except Exception as e:
             print(f"  [Arbeitnow] {e}")
             return []
+
+    # ── Source: Brave Search (career sites — Greenhouse/Lever/Ashby) ──────────
+
+    def _brave_search(self, title):
+        """Search real company career pages via Brave Search API (free 2k/month)."""
+        query = (
+            f'"{title}" remote job '
+            f'(site:boards.greenhouse.io OR site:jobs.lever.co OR '
+            f'site:jobs.ashbyhq.com OR site:apply.workable.com OR site:careers.smartrecruiters.com)'
+        )
+        try:
+            resp = requests.get(
+                "https://api.search.brave.com/res/v1/web/search",
+                params={"q": query, "count": 20, "search_lang": "en", "country": "us"},
+                headers={
+                    "Accept": "application/json",
+                    "Accept-Encoding": "gzip",
+                    "X-Subscription-Token": self.brave_api_key,
+                },
+                timeout=12,
+            )
+            resp.raise_for_status()
+            results = resp.json().get("web", {}).get("results", [])
+            jobs = []
+            for r in results:
+                url   = r.get("url", "")
+                title_text = r.get("title", "")
+                desc  = r.get("description", "") or r.get("extra_snippets", [""])[0]
+
+                # Extract company from URL pattern
+                company = self._company_from_ats_url(url)
+                if not company:
+                    continue
+
+                # Clean title — strip " - Company | Greenhouse" suffixes
+                job_title = title_text.split(" - ")[0].split(" | ")[0].strip()
+                if not job_title:
+                    continue
+
+                jobs.append({
+                    "id": f"brave_{hashlib.md5(url.encode()).hexdigest()[:12]}",
+                    "source": "Brave",
+                    "title": job_title,
+                    "company": company,
+                    "location": "Remote",
+                    "description": f"{job_title} at {company}. {desc}"[:3000],
+                    "url": url,
+                    "salary_min": None,
+                    "salary_max": None,
+                    "posted_at": "",
+                    "searched_title": title,
+                    "fetched_at": _now(),
+                })
+            return jobs
+        except Exception as e:
+            print(f"  [Brave:{title}] {e}")
+            return []
+
+    def _company_from_ats_url(self, url: str) -> str:
+        """Extract company name from known ATS URL patterns."""
+        import re
+        patterns = [
+            r"boards\.greenhouse\.io/([^/]+)",
+            r"jobs\.lever\.co/([^/]+)",
+            r"jobs\.ashbyhq\.com/([^/]+)",
+            r"apply\.workable\.com/([^/]+)",
+            r"careers\.smartrecruiters\.com/([^/]+)",
+        ]
+        for pat in patterns:
+            m = re.search(pat, url)
+            if m:
+                return m.group(1).replace("-", " ").replace("_", " ").title()
+        return ""
