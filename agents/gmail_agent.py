@@ -11,6 +11,7 @@ from googleapiclient.discovery import build
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/calendar",
 ]
 
 
@@ -97,6 +98,42 @@ class GmailAgent:
         self.service.users().messages().send(
             userId="me", body={"raw": raw}
         ).execute()
+
+    def search_replies(self, max_results: int = 10) -> list:
+        """Find user's replies to job agent digest emails (last 2 days)."""
+        self._ensure_auth()
+        query = 'subject:"Re: [Job Agent]" newer_than:2d in:sent'
+        result = self.service.users().threads().list(
+            userId="me", q=query, maxResults=max_results
+        ).execute()
+        return result.get("threads", [])
+
+    def get_reply_body(self, thread_id: str) -> str:
+        """Get plain text body of the latest message in a thread."""
+        self._ensure_auth()
+        thread = self.service.users().threads().get(
+            userId="me", id=thread_id, format="full"
+        ).execute()
+        messages = thread.get("messages", [])
+        if not messages:
+            return ""
+        return self._extract_text(messages[-1])
+
+    def _extract_text(self, message: dict) -> str:
+        return self._decode_parts(message.get("payload", {}))
+
+    def _decode_parts(self, payload: dict) -> str:
+        mime = payload.get("mimeType", "")
+        if mime == "text/plain":
+            data = payload.get("body", {}).get("data", "")
+            if data:
+                return base64.urlsafe_b64decode(data + "==").decode("utf-8", errors="ignore")
+        if mime.startswith("multipart/"):
+            for part in payload.get("parts", []):
+                text = self._decode_parts(part)
+                if text:
+                    return text
+        return ""
 
     def send_email_with_attachment(self, to, subject, html_body, attachment_path=None):
         self._ensure_auth()

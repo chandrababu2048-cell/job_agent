@@ -50,6 +50,10 @@ class FollowUpAgent:
         new_status = self._classify_reply(snippet_text)
         self.tracker.update_status(job["job_id"], new_status)
         print(f"[FollowUpAgent] Reply from {job['company']}: → {new_status}")
+
+        if new_status == "interview":
+            self._trigger_interview_prep(job, snippet_text)
+
         return True
 
     def _classify_reply(self, text):
@@ -60,6 +64,18 @@ class FollowUpAgent:
                                     "other candidates", "filled", "rejected", "regret"]):
             return "rejected"
         return "replied"
+
+    def _trigger_interview_prep(self, job: dict, snippet: str):
+        try:
+            import yaml
+            with open("config.yaml") as f:
+                config = yaml.safe_load(f)
+            with open(config["resume"]["master_md"]) as f:
+                master_resume = f.read()
+            from .interview_agent import InterviewPrepAgent
+            InterviewPrepAgent(config, master_resume).run(job, snippet)
+        except Exception as e:
+            print(f"[FollowUpAgent] Interview prep error: {e}")
 
     def _send_followup(self, job):
         """Generate and send a follow-up email for an application."""

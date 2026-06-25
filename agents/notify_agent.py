@@ -146,9 +146,16 @@ class NotifyAgent:
     </p>
   </div>
 
-  <div style="background:#fff8e1;border-left:4px solid #f59e0b;padding:12px 16px;margin:0;">
-    <b style="font-size:13px;">⚡ GOLDEN RULE: Quality over quantity.</b>
-    <span style="font-size:13px;"> Only approve roles you genuinely want. The agent will tailor a perfect application for each one you approve.</span>
+  <div style="background:#e8f5e9;border-left:4px solid #27ae60;padding:14px 16px;margin:0;">
+    <b style="font-size:13px;">✉️ REPLY TO THIS EMAIL to take action:</b><br>
+    <code style="background:#f4f4f4;padding:6px 10px;border-radius:4px;display:block;margin:8px 0;font-size:12px;">YES</code>
+    <span style="font-size:12px;color:#555;">→ approve ALL jobs listed and trigger auto-apply</span><br><br>
+    <code style="background:#f4f4f4;padding:6px 10px;border-radius:4px;display:block;margin:8px 0;font-size:12px;">YES abc123 def456</code>
+    <span style="font-size:12px;color:#555;">→ approve specific jobs by their ID (shown below each job)</span><br><br>
+    <code style="background:#f4f4f4;padding:6px 10px;border-radius:4px;display:block;margin:8px 0;font-size:12px;">NO abc123</code>
+    <span style="font-size:12px;color:#555;">→ skip a job you don't want</span><br><br>
+    <code style="background:#f4f4f4;padding:6px 10px;border-radius:4px;display:block;margin:8px 0;font-size:12px;">EDIT abc123: focus more on Python data pipelines</code>
+    <span style="font-size:12px;color:#555;">→ re-tailor with your suggestion and send revised version</span>
   </div>
 
   <table style="width:100%;border-collapse:collapse;background:white;">
