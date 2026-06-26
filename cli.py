@@ -107,6 +107,7 @@ def status(limit):
         "pending_approval": "🔔",
         "approved":         "✅",
         "awaiting_review":  "📋",
+        "needs_1click":     "🖱️ ",
         "applied":          "📤",
         "replied":          "💬",
         "interview":        "🎯",

@@ -83,7 +83,7 @@ class TrackerAgent:
 
     def log(self, job: dict, status: str = "awaiting_review"):
         record = {
-            "job_id":               job["id"],
+            "job_id":               job.get("job_id") or job.get("id"),
             "source":               job.get("source", ""),
             "title":                job.get("title", ""),
             "company":              job.get("company", ""),
