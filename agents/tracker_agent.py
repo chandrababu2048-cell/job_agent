@@ -90,7 +90,7 @@ class TrackerAgent:
             "location":             job.get("location", ""),
             "work_type":            job.get("work_type", ""),
             "url":                  job.get("url", ""),
-            "match_score":          job.get("match_score"),
+            "match_score":          int(job["match_score"]) if job.get("match_score") is not None else None,
             "match_reason":         job.get("match_reason", ""),
             "fit_reasons":          job.get("fit_reasons", []),
             "gaps":                 job.get("gaps", []),
