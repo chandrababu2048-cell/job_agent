@@ -155,6 +155,31 @@ def mark_applied(job_id, email):
         click.echo(f"  Follow-up will be sent to {email} in 7 days.\n")
 
 
+@cli.command("open-all")
+def open_all():
+    """Open all needs_1click job URLs in your browser so you can apply."""
+    import subprocess
+    tracker = _tracker()
+    jobs = tracker.get_recent(limit=100)
+    pending = [j for j in jobs if j.get("status") == "needs_1click"]
+
+    if not pending:
+        click.echo("\n  No needs_1click jobs. You're all caught up!\n")
+        return
+
+    click.echo(f"\n  Opening {len(pending)} job(s) in browser...\n")
+    for j in pending:
+        url = j.get("url", "")
+        if not url:
+            continue
+        click.echo(f"  🖱️  {j['company']} — {j['title']}")
+        click.echo(f"      {url}")
+        subprocess.Popen(["open", url])
+
+    click.echo(f"\n  After applying to each, run:")
+    click.echo(f"  python cli.py mark-applied <job_id>\n")
+
+
 # ── Resume & config editing ────────────────────────────────────────────────────
 
 @cli.command("edit-resume")
