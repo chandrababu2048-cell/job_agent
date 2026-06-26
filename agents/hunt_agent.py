@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import hashlib
 import requests
 import feedparser
@@ -84,11 +85,11 @@ class HuntAgent:
 
         tasks = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
-            # Title-specific sources
-            for title in self.titles:
-                tasks[pool.submit(self._linkedin, title)]    = f"LinkedIn:{title}"
+            # Title-specific sources — stagger Adzuna by 2s per title to avoid 429s
+            for i, title in enumerate(self.titles):
+                tasks[pool.submit(self._linkedin, title)] = f"LinkedIn:{title}"
                 if self.adzuna_app_id:
-                    tasks[pool.submit(self._adzuna, title)] = f"Adzuna:{title}"
+                    tasks[pool.submit(self._adzuna_safe, title, i * 2)] = f"Adzuna:{title}"
 
             # Keyword/category sources (search once, filter by keyword)
             tasks[pool.submit(self._remotive)]       = "Remotive"
@@ -265,6 +266,12 @@ class HuntAgent:
             return []
 
     # ── Source: Adzuna (existing, multi-page) ─────────────────────────────────
+
+    def _adzuna_safe(self, title, delay_secs: int = 0):
+        """Wrapper that staggers Adzuna calls to avoid 429 rate limits."""
+        if delay_secs > 0:
+            time.sleep(delay_secs)
+        return self._adzuna(title)
 
     def _adzuna(self, title):
         jobs = []

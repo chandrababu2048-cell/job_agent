@@ -33,7 +33,12 @@ class GmailAgent:
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+                try:
+                    creds.refresh(Request())
+                except Exception as e:
+                    raise ConnectionError(
+                        f"Gmail token refresh failed (network issue?): {e}"
+                    ) from None
             else:
                 if not os.path.exists(creds_path):
                     raise FileNotFoundError(
