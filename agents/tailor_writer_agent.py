@@ -61,10 +61,10 @@ Rewrite the resume in clean markdown:
 - HEADER: keep all contact info exactly as-is
 - SUMMARY (3-4 lines): mirror job title + top 2 required skills, most relevant achievement, direct connection to this company's needs
 - SKILLS: reorder so JD-required skills appear first; mirror JD keywords exactly
-- EXPERIENCE: keep all employer names/titles/dates exactly (never fabricate); rewrite 2-3 bullets per role to mirror JD language with measurable outcomes; move most relevant bullets to top
-- PROJECTS: only include relevant projects; rewrite bullets to use JD keywords truthfully
+- EXPERIENCE: include ALL employers from master resume — never drop any role; keep names/titles/dates exactly; rewrite 2-3 bullets per role to mirror JD language with measurable outcomes; put most relevant bullets first
+- PROJECTS: include ALL projects from master resume — never drop any; rewrite bullets to use JD keywords truthfully
 - EDUCATION & CERTS: keep unchanged
-Rules: every fact from master resume only — never invent; mirror JD keywords naturally; target 90%+ ATS match
+Rules: every fact from master resume only — never invent; never remove any employer or project; mirror JD keywords naturally; target 90%+ ATS match
 
 === COVER LETTER ===
 3 paragraphs, max 220 words total:
