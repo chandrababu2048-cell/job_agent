@@ -16,6 +16,8 @@ CERTIFICATIONS
 - AI Fluency: Framework & Foundations — Anthropic (Mar 2026)
 - Claude 101 — Anthropic
 - Advanced MCP (Model Context Protocol) — Anthropic
+- Build a Computer Vision App with Azure Cognitive Services — Microsoft
+
 
 ---
 
@@ -65,9 +67,22 @@ Citibank | .NET Developer | Feb 2024 – Nov 2025
 - Built and maintained Web APIs in C#/.NET 8 and ASP.NET Core supporting core banking workflows including payments and trade settlement. Started on CPT during Master's; continued full-time on OPT after graduation.
 - Implemented data access with Entity Framework Core and LINQ against SQL Server; built front-end features in React/Next.js with TypeScript.
 - Worked with JWT/OAuth2 authentication; contributed to CI/CD pipelines using Azure DevOps and GitHub Actions.
+- Migrated legacy ASP.NET applications to .NET Core for improved performance and maintainability.
+- Developed APIs for core banking features like fund transfers, balance inquiries, and authentication.
+- Integrated third-party services like Stripe and PayPal for seamless transactions.
+- Used GitHub Actions and Azure DevOps to automate build and release pipelines.
+- Managed deployments on Azure App Services and Azure SQL with high availability.
+- Enhanced mobile features including biometric login and push notifications.
+- Key Achievement: Increased customer satisfaction by 20% and reduced app latency by 35%.
 
 AT&T | .NET Developer Intern (Part-time, during B.Tech) | Feb 2021 – Apr 2023
 - Developed REST API endpoints in ASP.NET Core for telecom platform services; worked with Entity Framework, SQL Server, and Angular UI components.
+- Built and supported high-volume telecom systems using ASP.NET MVC, C#, and SQL Server.
+- Migrated monolithic apps to microservices on Azure, reducing operational overhead.
+- Created RESTful APIs for third-party vendor integration and real-time network monitoring.
+- Developed responsive UIs with HTML5, CSS3, JavaScript to improve user experience.
+- Contributed to billing system enhancements.
+- Key Achievement: Increased engagement by 25% and reduced technical debt by 40%.
 
 ---
 
