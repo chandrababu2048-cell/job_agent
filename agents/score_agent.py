@@ -29,7 +29,10 @@ KEYWORDS_B = {
 
 
 def stars(n):
-    return STAR_ICONS.get(int(n), "☆☆☆☆☆")
+    try:
+        return STAR_ICONS.get(int(n), "☆☆☆☆☆")
+    except (ValueError, TypeError):
+        return "⭐⭐⭐⭐☆"
 
 
 class ScoreAgent:
