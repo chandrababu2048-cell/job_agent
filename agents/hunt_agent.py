@@ -79,6 +79,7 @@ class HuntAgent:
         self.adzuna_app_id = os.environ.get("ADZUNA_APP_ID", "")
         self.adzuna_api_key = os.environ.get("ADZUNA_API_KEY", "")
         self.brave_api_key = os.environ.get("BRAVE_API_KEY", "")
+        self.serper_api_key = os.environ.get("SERPER_API_KEY", "")
 
     def run(self):
         print("[HuntAgent] Searching all sources in parallel…")
@@ -104,6 +105,11 @@ class HuntAgent:
             if self.brave_api_key:
                 for title in self.titles:
                     tasks[pool.submit(self._brave_search, title)] = f"Brave:{title}"
+
+            # Serper Search — free alternative to Brave (2500 searches free)
+            if self.serper_api_key:
+                for title in self.titles:
+                    tasks[pool.submit(self._serper_search, title)] = f"Serper:{title}"
 
             raw = []
             for future in concurrent.futures.as_completed(tasks):
@@ -541,6 +547,57 @@ class HuntAgent:
             return jobs
         except Exception as e:
             print(f"  [Brave:{title}] {e}")
+            return []
+
+    # ── Source: Serper Search (free 2500/month — Greenhouse/Lever/Ashby) ─────────
+
+    def _serper_search(self, title):
+        """Search real company career pages via Serper.dev (free 2500/month)."""
+        query = (
+            f'"{title}" remote job '
+            f'site:boards.greenhouse.io OR site:jobs.lever.co OR '
+            f'site:jobs.ashbyhq.com OR site:apply.workable.com'
+        )
+        try:
+            resp = requests.post(
+                "https://google.serper.dev/search",
+                headers={"X-API-KEY": self.serper_api_key, "Content-Type": "application/json"},
+                json={"q": query, "num": 20},
+                timeout=12,
+            )
+            resp.raise_for_status()
+            results = resp.json().get("organic", [])
+            jobs = []
+            for r in results:
+                url   = r.get("link", "")
+                title_text = r.get("title", "")
+                desc  = r.get("snippet", "")
+
+                company = self._company_from_ats_url(url)
+                if not company:
+                    continue
+
+                job_title = title_text.split(" - ")[0].split(" | ")[0].strip()
+                if not job_title:
+                    continue
+
+                jobs.append({
+                    "id": f"serper_{hashlib.md5(url.encode()).hexdigest()[:12]}",
+                    "source": "Serper",
+                    "title": job_title,
+                    "company": company,
+                    "location": "Remote",
+                    "description": f"{job_title} at {company}. {desc}"[:3000],
+                    "url": url,
+                    "salary_min": None,
+                    "salary_max": None,
+                    "posted_at": "",
+                    "searched_title": title,
+                    "fetched_at": _now(),
+                })
+            return jobs
+        except Exception as e:
+            print(f"  [Serper:{title}] {e}")
             return []
 
     def _company_from_ats_url(self, url: str) -> str:
