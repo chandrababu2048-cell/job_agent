@@ -57,13 +57,21 @@ class ScoreAgent:
             if rated:
                 passed.append(rated)
 
-        passed.sort(key=lambda j: j["match_score"], reverse=True)
-        top = passed[:10]  # hard cap: 10 per run
+        # ATS jobs (Serper/Brave) get priority — they can be auto-submitted
+        ats_sources = {"Serper", "Brave"}
+        ats_jobs  = [j for j in passed if j.get("source") in ats_sources]
+        rest_jobs = [j for j in passed if j.get("source") not in ats_sources]
 
-        print(f"[ScoreAgent] {len(passed)} rated {self.min_stars}★+ → top {len(top)} selected")
+        # Always include top 5 ATS jobs + top 10 from other sources (cap 15 total)
+        top = (ats_jobs[:5] + rest_jobs[:10])[:15]
+
+        print(f"[ScoreAgent] {len(passed)} rated {self.min_stars}★+ → "
+              f"{len(ats_jobs)} ATS + {len(rest_jobs)} other → top {len(top)} selected")
         for j in top:
+            src = j.get("source", "?")
+            tag = " 🎯ATS" if src in ats_sources else ""
             print(f"  {stars(j['stars'])} {j['title']} @ {j['company']} "
-                  f"[{j.get('work_type','?')}] score={j['match_score']}")
+                  f"[{src}] score={j['match_score']}{tag}")
 
         return top
 
