@@ -238,6 +238,60 @@ def outreach(job_id):
     click.echo(f"\n  ✅ {sent} outreach draft(s) sent to your inbox.\n")
 
 
+# ── Retry apply ────────────────────────────────────────────────────────────────
+
+@cli.command("retry-apply")
+@click.argument("job_id", required=False, default=None)
+def retry_apply(job_id):
+    """Re-run auto-submit on needs_1click jobs (Greenhouse/Lever/Ashby/LinkedIn only)."""
+    from agents.apply_agent import ApplyAgent
+    from agents.tracker_agent import TrackerAgent
+    import yaml, glob
+
+    with open("config.yaml") as f:
+        config = yaml.safe_load(f)
+
+    tracker  = TrackerAgent()
+    applier  = ApplyAgent(config)
+    jobs     = tracker.get_recent(limit=200)
+
+    if job_id:
+        jobs = [j for j in jobs if j.get("job_id") == job_id]
+    else:
+        jobs = [j for j in jobs if j.get("status") == "needs_1click"]
+
+    ats_auto = {"greenhouse", "lever", "ashby", "linkedin"}
+    eligible = [j for j in jobs if applier.detect_ats(j.get("url","")) in ats_auto]
+
+    if not eligible:
+        click.echo("\n  No eligible jobs (needs Greenhouse/Lever/Ashby/LinkedIn URL).\n")
+        return
+
+    click.echo(f"\n  Retrying auto-submit for {len(eligible)} job(s)…\n")
+    submitted, failed = 0, 0
+
+    for job in eligible:
+        ats = applier.detect_ats(job.get("url",""))
+        click.echo(f"  → {job['company']} [{ats}]")
+
+        # Find tailored resume PDF if it exists
+        safe = lambda s: "".join(c if c.isalnum() or c in "-_" else "_" for c in s)[:35]
+        pattern = f"resume/tailored/{safe(job.get('company',''))}*.pdf"
+        pdfs = glob.glob(pattern)
+        pdf_path = pdfs[0] if pdfs else ""
+
+        result = applier.apply(job, pdf_path)
+        if result.get("success"):
+            tracker.mark_applied(job["job_id"])
+            click.echo(f"    ✅ Auto-submitted")
+            submitted += 1
+        else:
+            click.echo(f"    🖱️  Still needs 1-click: {result.get('notes','')}")
+            failed += 1
+
+    click.echo(f"\n  Done — {submitted} auto-submitted, {failed} still need manual apply.\n")
+
+
 # ── Manual triggers ────────────────────────────────────────────────────────────
 
 @cli.command("run-hunt")

@@ -11,7 +11,6 @@ Semi-auto (opens browser, user clicks Submit):
 import os
 import re
 import time
-import base64
 
 
 ATS_PATTERNS = {
@@ -66,64 +65,149 @@ class ApplyAgent:
 
         return result
 
+    # ── Stealth browser context ────────────────────────────────────────────────
+
+    def _stealth_browser(self, p):
+        """Launch Chromium with anti-bot headers so Greenhouse/Lever don't block us."""
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+            ],
+        )
+        ctx = browser.new_context(
+            user_agent=(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            viewport={"width": 1280, "height": 800},
+            locale="en-US",
+        )
+        # Hide webdriver flag
+        ctx.add_init_script("Object.defineProperty(navigator,'webdriver',{get:()=>undefined})")
+        return browser, ctx
+
+    def _wait_and_fill(self, page, selector: str, value: str, timeout: int = 3000):
+        """Wait for element to appear then fill it."""
+        if not value:
+            return
+        try:
+            page.wait_for_selector(selector, timeout=timeout, state="visible")
+            el = page.query_selector(selector)
+            if el:
+                el.click()
+                time.sleep(0.2)
+                el.fill(str(value))
+        except Exception:
+            pass
+
+    def _find_submit_btn(self, page):
+        """Try many submit button patterns."""
+        selectors = [
+            "button[type='submit']:not([disabled])",
+            "input[type='submit']:not([disabled])",
+            "button:has-text('Submit Application')",
+            "button:has-text('Submit')",
+            "button:has-text('Apply')",
+            "button:has-text('Send Application')",
+            "[data-qa='btn-submit']",
+            "#submit_app",
+        ]
+        for sel in selectors:
+            try:
+                btn = page.query_selector(sel)
+                if btn and btn.is_visible():
+                    return btn
+            except Exception:
+                pass
+        return None
+
+    def _upload_resume(self, page, resume_pdf_path: str):
+        """Upload resume to first visible file input."""
+        if not resume_pdf_path or not os.path.exists(resume_pdf_path):
+            return
+        try:
+            # Try visible file input first, then any file input
+            inp = (page.query_selector("input[type='file']:not([style*='display:none'])") or
+                   page.query_selector("input[type='file']"))
+            if inp:
+                inp.set_input_files(resume_pdf_path)
+                time.sleep(2)
+                print(f"  [ApplyAgent] Resume uploaded")
+        except Exception as e:
+            print(f"  [ApplyAgent] Resume upload failed: {e}")
+
     # ── Greenhouse ─────────────────────────────────────────────────────────────
 
     def _apply_greenhouse(self, job: dict, resume_pdf_path: str) -> dict:
         from playwright.sync_api import sync_playwright
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page    = browser.new_page()
+            browser, ctx = self._stealth_browser(p)
+            page = ctx.new_page()
 
             try:
-                page.goto(job["url"], timeout=30000)
-                page.wait_for_load_state("networkidle", timeout=15000)
+                page.goto(job["url"], timeout=45000, wait_until="domcontentloaded")
+                page.wait_for_timeout(2000)
+
+                # Check for bot block
+                if "blocked" in page.title().lower() or "captcha" in page.content().lower():
+                    browser.close()
+                    print(f"  [ApplyAgent] ⚠️  Greenhouse bot-blocked: {job['company']}")
+                    return self._open_browser(job)
 
                 first = self.candidate["name"].split()[0]
                 last  = self.candidate["name"].split()[-1]
 
-                self._fill(page, "input[name='first_name']", first)
-                self._fill(page, "input[name='last_name']",  last)
-                self._fill(page, "input[name='email']",      self.candidate["email"])
-                self._fill(page, "input[name='phone']",      self.candidate.get("phone", ""))
-                self._fill(page, "input[name='location']",   self.candidate.get("location", ""))
-                self._fill(page, "input[name='linkedin_profile']",
-                           f"https://{self.candidate.get('linkedin','')}")
+                # Core fields — Greenhouse uses name attributes
+                self._wait_and_fill(page, "input[name='first_name']", first)
+                self._wait_and_fill(page, "input[name='last_name']",  last)
+                self._wait_and_fill(page, "input[name='email']",      self.candidate["email"])
+                self._wait_and_fill(page, "input[name='phone']",      self.candidate.get("phone",""))
+                self._wait_and_fill(page, "input[name='location']",   self.candidate.get("location",""))
+
+                # LinkedIn / GitHub / website fields
+                linkedin_url = f"https://{self.candidate.get('linkedin','')}"
+                github_url   = f"https://{self.candidate.get('github','')}"
+                self._wait_and_fill(page, "input[name='linkedin_profile']", linkedin_url)
+                self._wait_and_fill(page, "input[id*='linkedin' i]",        linkedin_url)
+                self._wait_and_fill(page, "input[placeholder*='linkedin' i]", linkedin_url)
+                self._wait_and_fill(page, "input[id*='github' i]",          github_url)
+                self._wait_and_fill(page, "input[placeholder*='github' i]", github_url)
 
                 # Resume upload
-                if resume_pdf_path and os.path.exists(resume_pdf_path):
-                    inp = page.query_selector("input[type='file']")
-                    if inp:
-                        inp.set_input_files(resume_pdf_path)
-                        time.sleep(2)
+                self._upload_resume(page, resume_pdf_path)
 
                 # Cover letter
                 cover = job.get("cover_letter", "")
                 if cover:
-                    self._fill(page, "textarea[name='cover_letter']", cover)
+                    self._wait_and_fill(page, "textarea[name='cover_letter']", cover[:3000])
+                    self._wait_and_fill(page, "textarea[id*='cover' i]",       cover[:3000])
 
-                # Screenshot before submit
-                screenshot_b64 = base64.b64encode(page.screenshot()).decode()
-
-                # Find and click submit
-                btn = (page.query_selector("input[type='submit'][value*='Submit' i]") or
-                       page.query_selector("input[type='submit']") or
-                       page.query_selector("button[type='submit']"))
+                page.wait_for_timeout(1000)
+                btn = self._find_submit_btn(page)
 
                 if btn:
+                    btn.scroll_into_view_if_needed()
+                    page.wait_for_timeout(500)
                     btn.click()
-                    time.sleep(3)
+                    page.wait_for_timeout(4000)
                     browser.close()
                     print(f"  [ApplyAgent] ✅ Greenhouse auto-submitted: {job['company']}")
-                    return {"success": True, "method": "greenhouse_auto",
-                            "screenshot": screenshot_b64}
+                    return {"success": True, "method": "greenhouse_auto"}
 
+                # Debug: log what's on the page
+                print(f"  [ApplyAgent] ⚠️  No submit button found on Greenhouse form ({job['company']})")
+                print(f"  [ApplyAgent]    Page title: {page.title()}")
                 browser.close()
-                return {"success": False, "method": "greenhouse_no_submit",
-                        "notes": "Submit button not found — form may have changed"}
+                return self._open_browser(job)
 
             except Exception as e:
-                browser.close()
+                try: browser.close()
+                except Exception: pass
                 raise e
 
     # ── Lever ──────────────────────────────────────────────────────────────────
@@ -132,56 +216,56 @@ class ApplyAgent:
         from playwright.sync_api import sync_playwright
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page    = browser.new_page()
+            browser, ctx = self._stealth_browser(p)
+            page = ctx.new_page()
 
             try:
-                page.goto(job["url"], timeout=30000)
-                page.wait_for_load_state("networkidle", timeout=15000)
+                page.goto(job["url"], timeout=45000, wait_until="domcontentloaded")
+                page.wait_for_timeout(2000)
 
-                name = self.candidate["name"]
-                self._fill(page, "input[name='name']", name)
-                self._fill(page, "input[placeholder*='Full name' i]", name)
-                self._fill(page, "input[name='email']",     self.candidate["email"])
-                self._fill(page, "input[placeholder*='email' i]", self.candidate["email"])
-                self._fill(page, "input[name='phone']",     self.candidate.get("phone", ""))
-                self._fill(page, "input[name='org']",       "")
-                self._fill(page, "input[name='urls[LinkedIn]']",
-                           f"https://{self.candidate.get('linkedin','')}")
-                self._fill(page, "input[name='urls[GitHub]']",
-                           f"https://{self.candidate.get('github','')}")
+                name         = self.candidate["name"]
+                linkedin_url = f"https://{self.candidate.get('linkedin','')}"
+                github_url   = f"https://{self.candidate.get('github','')}"
 
-                # Resume upload
-                if resume_pdf_path and os.path.exists(resume_pdf_path):
-                    inp = page.query_selector("input[type='file']")
-                    if inp:
-                        inp.set_input_files(resume_pdf_path)
-                        time.sleep(2)
+                self._wait_and_fill(page, "input[name='name']",                  name)
+                self._wait_and_fill(page, "input[placeholder*='Full name' i]",   name)
+                self._wait_and_fill(page, "input[placeholder*='Your name' i]",   name)
+                self._wait_and_fill(page, "input[name='email']",                 self.candidate["email"])
+                self._wait_and_fill(page, "input[placeholder*='email' i]",       self.candidate["email"])
+                self._wait_and_fill(page, "input[name='phone']",                 self.candidate.get("phone",""))
+                self._wait_and_fill(page, "input[placeholder*='phone' i]",       self.candidate.get("phone",""))
+                self._wait_and_fill(page, "input[name='urls[LinkedIn]']",        linkedin_url)
+                self._wait_and_fill(page, "input[name='urls[GitHub]']",          github_url)
+                self._wait_and_fill(page, "input[placeholder*='linkedin' i]",    linkedin_url)
+                self._wait_and_fill(page, "input[placeholder*='github' i]",      github_url)
 
-                # Cover letter / comments
+                self._upload_resume(page, resume_pdf_path)
+
                 cover = job.get("cover_letter", "")
                 if cover:
-                    self._fill(page, "textarea[name='comments']", cover)
-                    self._fill(page, "textarea[placeholder*='cover' i]", cover)
+                    self._wait_and_fill(page, "textarea[name='comments']",       cover[:3000])
+                    self._wait_and_fill(page, "textarea[placeholder*='cover' i]", cover[:3000])
+                    self._wait_and_fill(page, "textarea[placeholder*='letter' i]", cover[:3000])
 
-                screenshot_b64 = base64.b64encode(page.screenshot()).decode()
+                page.wait_for_timeout(1000)
+                btn = self._find_submit_btn(page)
 
-                btn = (page.query_selector("button[type='submit']") or
-                       page.query_selector("input[type='submit']"))
                 if btn:
+                    btn.scroll_into_view_if_needed()
+                    page.wait_for_timeout(500)
                     btn.click()
-                    time.sleep(3)
+                    page.wait_for_timeout(4000)
                     browser.close()
                     print(f"  [ApplyAgent] ✅ Lever auto-submitted: {job['company']}")
-                    return {"success": True, "method": "lever_auto",
-                            "screenshot": screenshot_b64}
+                    return {"success": True, "method": "lever_auto"}
 
+                print(f"  [ApplyAgent] ⚠️  No submit button found on Lever form ({job['company']})")
                 browser.close()
-                return {"success": False, "method": "lever_no_submit",
-                        "notes": "Submit button not found"}
+                return self._open_browser(job)
 
             except Exception as e:
-                browser.close()
+                try: browser.close()
+                except Exception: pass
                 raise e
 
     # ── Ashby ──────────────────────────────────────────────────────────────────
@@ -190,52 +274,52 @@ class ApplyAgent:
         from playwright.sync_api import sync_playwright
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page    = browser.new_page()
+            browser, ctx = self._stealth_browser(p)
+            page = ctx.new_page()
 
             try:
-                page.goto(job["url"], timeout=30000)
-                page.wait_for_load_state("networkidle", timeout=15000)
+                page.goto(job["url"], timeout=45000, wait_until="domcontentloaded")
+                page.wait_for_timeout(2000)
 
                 first = self.candidate["name"].split()[0]
                 last  = self.candidate["name"].split()[-1]
 
-                self._fill(page, "input[name='_systemfield_name']",  self.candidate["name"])
-                self._fill(page, "input[placeholder*='First' i]",    first)
-                self._fill(page, "input[placeholder*='Last' i]",     last)
-                self._fill(page, "input[name='_systemfield_email']", self.candidate["email"])
-                self._fill(page, "input[placeholder*='email' i]",    self.candidate["email"])
-                self._fill(page, "input[placeholder*='phone' i]",    self.candidate.get("phone",""))
+                self._wait_and_fill(page, "input[name='_systemfield_name']",   self.candidate["name"])
+                self._wait_and_fill(page, "input[placeholder*='First' i]",     first)
+                self._wait_and_fill(page, "input[placeholder*='Last' i]",      last)
+                self._wait_and_fill(page, "input[name='_systemfield_email']",  self.candidate["email"])
+                self._wait_and_fill(page, "input[placeholder*='email' i]",     self.candidate["email"])
+                self._wait_and_fill(page, "input[type='email']",               self.candidate["email"])
+                self._wait_and_fill(page, "input[placeholder*='phone' i]",     self.candidate.get("phone",""))
+                self._wait_and_fill(page, "input[type='tel']",                 self.candidate.get("phone",""))
 
-                if resume_pdf_path and os.path.exists(resume_pdf_path):
-                    inp = page.query_selector("input[type='file']")
-                    if inp:
-                        inp.set_input_files(resume_pdf_path)
-                        time.sleep(2)
+                self._upload_resume(page, resume_pdf_path)
 
                 cover = job.get("cover_letter", "")
                 if cover:
-                    self._fill(page, "textarea[placeholder*='cover' i]", cover)
-                    self._fill(page, "textarea[name*='cover' i]", cover)
+                    self._wait_and_fill(page, "textarea[placeholder*='cover' i]",  cover[:3000])
+                    self._wait_and_fill(page, "textarea[name*='cover' i]",          cover[:3000])
+                    self._wait_and_fill(page, "textarea",                            cover[:3000])
 
-                screenshot_b64 = base64.b64encode(page.screenshot()).decode()
+                page.wait_for_timeout(1000)
+                btn = self._find_submit_btn(page)
 
-                btn = (page.query_selector("button[type='submit']") or
-                       page.query_selector("button[data-testid*='submit' i]"))
                 if btn:
+                    btn.scroll_into_view_if_needed()
+                    page.wait_for_timeout(500)
                     btn.click()
-                    time.sleep(3)
+                    page.wait_for_timeout(4000)
                     browser.close()
                     print(f"  [ApplyAgent] ✅ Ashby auto-submitted: {job['company']}")
-                    return {"success": True, "method": "ashby_auto",
-                            "screenshot": screenshot_b64}
+                    return {"success": True, "method": "ashby_auto"}
 
+                print(f"  [ApplyAgent] ⚠️  No submit button found on Ashby form ({job['company']})")
                 browser.close()
-                return {"success": False, "method": "ashby_no_submit",
-                        "notes": "Submit button not found"}
+                return self._open_browser(job)
 
             except Exception as e:
-                browser.close()
+                try: browser.close()
+                except Exception: pass
                 raise e
 
     # ── LinkedIn Easy Apply ───────────────────────────────────────────────────
