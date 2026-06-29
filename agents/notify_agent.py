@@ -33,21 +33,52 @@ class NotifyAgent:
     # ── Per-job email — sent after user approves + tailoring is done ──────────
 
     def send_job_package(self, job):
-        """Send tailored package — either confirmation of auto-submit or 1-click link."""
+        """Send tailored package with PDF resume attached."""
         s = job.get("stars", "?")
         applied = job.get("apply_success", False)
         prefix  = "✅ AUTO-APPLIED" if applied else "🖱️ 1-CLICK NEEDED"
         subject = (f"{prefix} | {stars(s)} {job['title']} @ {job['company']} "
                    f"| {job.get('confidence','')} confidence")
         html = self._build_package_html(job)
+
+        params = {
+            "from": "Job Agent <onboarding@resend.dev>",
+            "to":   self.notify_email,
+            "subject": subject,
+            "html": html,
+        }
+
+        # Attach PDF resume if it exists
+        pdf_path = job.get("tailored_resume_path", "")
+        if pdf_path and pdf_path.endswith(".pdf") and os.path.exists(pdf_path):
+            import base64
+            with open(pdf_path, "rb") as f:
+                params["attachments"] = [{
+                    "filename": os.path.basename(pdf_path),
+                    "content":  base64.b64encode(f.read()).decode(),
+                }]
+        elif pdf_path and pdf_path.endswith(".md") and os.path.exists(pdf_path):
+            # MD saved but no PDF yet — generate PDF on the fly
+            try:
+                from .pdf_agent import PDFAgent
+                pdf_out = pdf_path.replace(".md", ".pdf")
+                with open(pdf_path) as f:
+                    md = f.read()
+                PDFAgent().generate(md, pdf_out)
+                import base64
+                with open(pdf_out, "rb") as f:
+                    params["attachments"] = [{
+                        "filename": os.path.basename(pdf_out),
+                        "content":  base64.b64encode(f.read()).decode(),
+                    }]
+                print(f"[NotifyAgent] PDF generated on-the-fly: {pdf_out}")
+            except Exception as e:
+                print(f"[NotifyAgent] PDF generation failed: {e} — sending without attachment")
+
         try:
-            resend.Emails.send({
-                "from": "Job Agent <onboarding@resend.dev>",
-                "to": self.notify_email,
-                "subject": subject,
-                "html": html,
-            })
-            print(f"[NotifyAgent] Package sent: {job['title']} @ {job['company']}")
+            resend.Emails.send(params)
+            attached = "📎 PDF attached" if params.get("attachments") else "no attachment"
+            print(f"[NotifyAgent] Package sent: {job['title']} @ {job['company']} ({attached})")
         except Exception as e:
             print(f"[NotifyAgent] Package email error: {e}")
 
