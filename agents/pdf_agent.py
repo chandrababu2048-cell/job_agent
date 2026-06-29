@@ -182,12 +182,15 @@ class PDFAgent:
             body = "\n".join(lines[body_start:])
             md = new_header + body
 
-        # Fix HTML entities and AT&T; bug
+        # Expand HTML entities the LLM may have introduced
         md = (md.replace("&amp;", "&")
                 .replace("&lt;", "<")
                 .replace("&gt;", ">")
                 .replace("&#39;", "'")
                 .replace("&quot;", '"'))
-        md = re.sub(r'AT&T;', 'AT&T', md)
+
+        # Re-escape bare & for reportlab's XML parser
+        # Keeps &amp; &lt; &gt; &quot; &apos; &#NNN; intact, escapes everything else
+        md = re.sub(r'&(?!(amp|lt|gt|quot|apos|#\d+);)', '&amp;', md)
 
         return md
