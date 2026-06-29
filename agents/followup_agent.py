@@ -1,5 +1,4 @@
 from datetime import datetime, timezone, timedelta
-from .base import call_llm_haiku
 from .gmail_agent import GmailAgent
 from .tracker_agent import TrackerAgent
 
@@ -32,7 +31,6 @@ class FollowUpAgent:
         print(f"[FollowUpAgent] Done — {replied} replies detected, {sent} follow-ups sent.")
 
     def _check_for_reply(self, job):
-        """Check Gmail inbox for a reply from the company. Update status if found."""
         if not job.get("applied_at"):
             return False
         applied_date = job["applied_at"][:10]
@@ -45,7 +43,6 @@ class FollowUpAgent:
         if not snippets:
             return False
 
-        # Classify the reply (interview / rejection / info request)
         snippet_text = snippets[0].get("snippet", "") + " " + snippets[0].get("subject", "")
         new_status = self._classify_reply(snippet_text)
         self.tracker.update_status(job["job_id"], new_status)
@@ -78,38 +75,36 @@ class FollowUpAgent:
             print(f"[FollowUpAgent] Interview prep error: {e}")
 
     def _send_followup(self, job):
-        """Generate and send a follow-up email for an application."""
         candidate = self.config["candidate"]
+        name = candidate["name"]
+        title = job["title"]
+        company = job["company"]
         applied_date = job.get("applied_at", "")[:10]
+        count = job.get("followup_count", 0) + 1
 
-        prompt = f"""Write a short, professional follow-up email for a job application.
+        if count == 1:
+            body_text = (
+                f"Hi,\n\n"
+                f"I wanted to follow up on my application for the {title} role at {company}, "
+                f"submitted on {applied_date}. I remain very interested in the opportunity and "
+                f"would love to learn if there are any updates on the hiring timeline.\n\n"
+                f"Please let me know if you need any additional information from my end.\n\n"
+                f"Best regards,\n{name}"
+            )
+        else:
+            body_text = (
+                f"Hi,\n\n"
+                f"I wanted to check in once more regarding my application for the {title} role at "
+                f"{company}. I understand you may be reviewing many candidates and I appreciate "
+                f"your time. I'm still very enthusiastic about this position and the team.\n\n"
+                f"Happy to provide references or any additional materials if helpful.\n\n"
+                f"Best regards,\n{name}"
+            )
 
-Candidate: {candidate['name']}
-Applied for: {job['title']} at {job['company']}
-Applied on: {applied_date}
-Today: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}
-Followup number: {job.get('followup_count', 0) + 1}
-
-Rules:
-- 3-4 sentences maximum
-- Politely ask about the status of the application
-- Reiterate genuine interest in the role (one specific reason)
-- Offer to provide anything additional
-- Professional but warm — not robotic
-- Sign with the candidate's full name
-
-Return ONLY the plain text email body (no subject line)."""
-
-        try:
-            body_text = call_llm_haiku(self.config, prompt, max_tokens=300)
-        except Exception as e:
-            print(f"[FollowUpAgent] LLM error: {e}")
-            return False
-
-        subject = f"Following Up — {job['title']} Application"
-        html_body = "<div style='font-family:Arial,sans-serif;font-size:14px;'>"
+        subject = f"Following Up — {title} Application"
+        html_body = "<div style='font-family:Arial,sans-serif;font-size:14px;line-height:1.6'>"
         for line in body_text.split("\n"):
-            html_body += f"<p>{line}</p>" if line.strip() else ""
+            html_body += f"<p style='margin:4px 0'>{line}</p>" if line.strip() else "<br>"
         html_body += "</div>"
 
         try:
@@ -120,8 +115,8 @@ Return ONLY the plain text email body (no subject line)."""
                 text_body=body_text,
             )
             self.tracker.mark_followup_sent(job["job_id"])
-            print(f"[FollowUpAgent] Follow-up sent → {job['company']} ({job['applied_email']})")
+            print(f"[FollowUpAgent] Follow-up #{count} sent → {company} ({job['applied_email']})")
             return True
         except Exception as e:
-            print(f"[FollowUpAgent] Send error for {job['company']}: {e}")
+            print(f"[FollowUpAgent] Send error for {company}: {e}")
             return False

@@ -102,6 +102,35 @@ job_search:
   - Data Engineer
   - .NET Developer
   - Frontend Developer
+linkedin:
+  easy_apply_answers:
+    # Work authorization
+    "authorized to work in the us":     "Yes"
+    "require sponsorship":              "No"
+    "visa sponsorship":                 "No"
+    "legally authorized":               "Yes"
+    # Experience
+    "years of experience":              "4"
+    "years of professional experience": "4"
+    # Salary
+    "salary":                           "110000"
+    "expected salary":                  "110000"
+    "desired salary":                   "110000"
+    # Availability
+    "available to start":               "Immediately"
+    "notice period":                    "2 weeks"
+    # Location
+    "willing to relocate":              "No"
+    "remote":                           "Yes"
+    # Education
+    "highest level of education":       "Master's Degree"
+    "degree":                           "Master's Degree"
+    # .NET / Python specific
+    "years of .net experience":         "4"
+    "years of python experience":       "3"
+    "years of react experience":        "3"
+    "years of c# experience":           "4"
+
 notifications:
   gmail_to: chandrababunaidu2048@gmail.com
 resume:

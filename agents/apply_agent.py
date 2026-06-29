@@ -55,6 +55,8 @@ class ApplyAgent:
                 result.update(self._apply_lever(job, resume_pdf_path))
             elif ats == "ashby":
                 result.update(self._apply_ashby(job, resume_pdf_path))
+            elif ats == "linkedin":
+                result.update(self._apply_linkedin(job, resume_pdf_path))
             else:
                 result.update(self._open_browser(job))
         except Exception as e:
@@ -236,7 +238,22 @@ class ApplyAgent:
                 browser.close()
                 raise e
 
-    # ── Browser fallback (LinkedIn, Indeed, Unknown) ───────────────────────────
+    # ── LinkedIn Easy Apply ───────────────────────────────────────────────────
+
+    def _apply_linkedin(self, job: dict, resume_pdf_path: str) -> dict:
+        try:
+            from .linkedin_agent import LinkedInAgent
+            agent = LinkedInAgent(self.config)
+            if not agent.is_logged_in():
+                print(f"  [ApplyAgent] LinkedIn session missing — queuing 1-click")
+                print(f"  [ApplyAgent] Run once: python -c \"from agents.linkedin_agent import LinkedInAgent; LinkedInAgent().login()\"")
+                return self._open_browser(job)
+            return agent.apply(job, resume_pdf_path)
+        except Exception as e:
+            print(f"  [ApplyAgent] LinkedIn Easy Apply error: {e} — falling back to 1-click")
+            return self._open_browser(job)
+
+    # ── Browser fallback (Indeed, Unknown) ────────────────────────────────────
 
     def _open_browser(self, job: dict) -> dict:
         url = job.get("url", "")

@@ -180,6 +180,20 @@ def open_all():
     click.echo(f"  python cli.py mark-applied <job_id>\n")
 
 
+# ── LinkedIn setup ─────────────────────────────────────────────────────────────
+
+@cli.command("linkedin-login")
+def linkedin_login():
+    """Save LinkedIn session for Easy Apply automation (run once)."""
+    from agents.linkedin_agent import LinkedInAgent
+    import yaml
+    with open("config.yaml") as f:
+        config = yaml.safe_load(f)
+    click.echo("\n  Opening browser — log in to LinkedIn, then press Enter here.\n")
+    LinkedInAgent(config).login()
+    click.echo("\n  ✅ LinkedIn session saved. Easy Apply is now active.\n")
+
+
 # ── Resume & config editing ────────────────────────────────────────────────────
 
 @cli.command("edit-resume")
@@ -198,6 +212,30 @@ def edit_profile():
     """Edit config.yaml — job titles, salary floor, preferences."""
     editor = os.environ.get("EDITOR", "open")
     subprocess.run([editor, "config.yaml"])
+
+
+# ── Recruiter Outreach ─────────────────────────────────────────────────────────
+
+@cli.command("outreach")
+@click.argument("job_id", required=False, default=None)
+def outreach(job_id):
+    """Draft LinkedIn outreach messages for applied jobs and email them to you."""
+    tracker = _tracker()
+    if job_id:
+        jobs = [j for j in tracker.get_recent(limit=200) if j.get("job_id") == job_id]
+    else:
+        jobs = tracker.get_applied_jobs()
+
+    if not jobs:
+        click.echo("\n  No applied jobs found. Apply to some jobs first.\n")
+        return
+
+    click.echo(f"\n  Generating outreach for {len(jobs)} job(s)…\n")
+    from agents.outreach_agent import RecruiterOutreachAgent
+    with open("config.yaml") as f:
+        config = yaml.safe_load(f)
+    sent = RecruiterOutreachAgent(config).run(jobs)
+    click.echo(f"\n  ✅ {sent} outreach draft(s) sent to your inbox.\n")
 
 
 # ── Manual triggers ────────────────────────────────────────────────────────────
