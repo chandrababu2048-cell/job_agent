@@ -9,9 +9,9 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, HRFlowable, ListFlowable, ListItem
+    SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 )
-from reportlab.lib.enums import TA_LEFT, TA_CENTER
+from reportlab.lib.enums import TA_CENTER
 
 
 class PDFAgent:
@@ -19,6 +19,9 @@ class PDFAgent:
     def generate(self, tailored_resume_md: str, output_path: str) -> str:
         """Convert markdown resume to PDF. Returns output_path."""
         os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+
+        # Fix header and HTML entities before rendering
+        tailored_resume_md = self._preprocess(tailored_resume_md)
 
         doc = SimpleDocTemplate(
             output_path,
@@ -30,8 +33,8 @@ class PDFAgent:
         )
 
         # ── Styles ─────────────────────────────────────────────────────────────
-        dark = colors.HexColor("#1a1a2e")
-        mid  = colors.HexColor("#444444")
+        dark  = colors.HexColor("#1a1a2e")
+        mid   = colors.HexColor("#444444")
         light = colors.HexColor("#666666")
 
         name_style = ParagraphStyle("Name", fontName="Helvetica-Bold",
@@ -42,8 +45,7 @@ class PDFAgent:
                                        spaceAfter=6, alignment=TA_CENTER)
         h1_style = ParagraphStyle("H1", fontName="Helvetica-Bold",
                                   fontSize=11, textColor=dark,
-                                  spaceBefore=8, spaceAfter=2,
-                                  textTransform="uppercase")
+                                  spaceBefore=8, spaceAfter=2)
         h2_style = ParagraphStyle("H2", fontName="Helvetica-Bold",
                                   fontSize=10, textColor=dark,
                                   spaceBefore=5, spaceAfter=1)
@@ -55,8 +57,7 @@ class PDFAgent:
                                     spaceAfter=2, leading=13)
         bullet_style = ParagraphStyle("Bullet", fontName="Helvetica",
                                       fontSize=9.5, textColor=mid,
-                                      leftIndent=12, spaceAfter=1,
-                                      leading=13)
+                                      leftIndent=12, spaceAfter=1, leading=13)
         divider_color = colors.HexColor("#cccccc")
 
         story = []
@@ -76,10 +77,12 @@ class PDFAgent:
                 # Collect contact line(s) immediately after name
                 contact_parts = []
                 while i < len(lines) and not lines[i].startswith("#") and lines[i].strip():
-                    contact_parts.append(lines[i].strip().lstrip(">").strip())
+                    part = lines[i].strip().lstrip(">").strip()
+                    if part != "---":
+                        contact_parts.append(part)
                     i += 1
                 if contact_parts:
-                    contact_text = " · ".join(contact_parts)
+                    contact_text = "  ·  ".join(contact_parts)
                     contact_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', contact_text)
                     story.append(Paragraph(contact_text, contact_style))
                 story.append(HRFlowable(width="100%", thickness=1.5,
@@ -113,7 +116,7 @@ class PDFAgent:
                 i += 1
                 continue
 
-            # Bold line (likely a job title or company)
+            # Bold line (job title / company)
             if line.startswith("**") and line.endswith("**"):
                 text = line[2:-2].strip()
                 story.append(Paragraph(text, h3_style))
@@ -143,3 +146,48 @@ class PDFAgent:
 
         doc.build(story)
         return output_path
+
+    def _preprocess(self, md: str) -> str:
+        """Convert YAML frontmatter header to clean markdown; fix HTML entities."""
+        lines = md.splitlines()
+
+        yaml_keys = {"name", "location", "phone", "email", "linkedin", "github"}
+        header    = {}
+        body_start = 0
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                body_start = i
+                break
+            if ":" in stripped:
+                key, _, val = stripped.partition(":")
+                k = key.strip().lower()
+                if k in yaml_keys:
+                    header[k] = val.strip()
+                    body_start = i + 1
+
+        if header:
+            name     = header.get("name", "")
+            location = header.get("location", "")
+            phone    = header.get("phone", "")
+            email    = header.get("email", "")
+            linkedin = header.get("linkedin", "")
+            github   = header.get("github", "")
+
+            contact_parts = [p for p in [location, phone, email, linkedin, github] if p]
+            contact_line  = "  ·  ".join(contact_parts)
+
+            new_header = f"# {name}\n{contact_line}\n\n---\n"
+            body = "\n".join(lines[body_start:])
+            md = new_header + body
+
+        # Fix HTML entities and AT&T; bug
+        md = (md.replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&#39;", "'")
+                .replace("&quot;", '"'))
+        md = re.sub(r'AT&T;', 'AT&T', md)
+
+        return md
