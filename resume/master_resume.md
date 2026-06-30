@@ -8,13 +8,13 @@ github: github.com/chandrababu2048-cell
 ---
 
 ## SUMMARY
-Full-stack Software Engineer with 4 years of production experience building scalable distributed systems, RESTful APIs, and AI-integrated applications. Designed and shipped high-throughput banking APIs at Citibank processing payments and trade settlement at scale. Built a 24/7 autonomous multi-agent AI system from scratch using Python, Gemini, and Groq LLMs. Anthropic-certified in AI Fluency, Claude API, and Advanced MCP. Open to Software Engineer, AI Engineer, and Full-Stack roles where I can ship production-grade systems at scale.
+Python and .NET Software Engineer with 4 years of production experience building scalable distributed systems, RESTful APIs, and AI-integrated applications. Designed and shipped high-throughput banking APIs at Citibank processing payments and trade settlement at scale; built a 24/7 autonomous multi-agent AI system in Python with Gemini and Groq LLMs. Anthropic-certified in AI Fluency, Claude API, and Advanced MCP. Open to Software Engineer, AI Engineer, and Full-Stack roles where I can ship production-grade Python or .NET systems at scale.
 
 ---
 
 ## TECHNICAL SKILLS
-Languages: Python, C#, JavaScript (ES6+), TypeScript, SQL, Go (learning)
-Backend: ASP.NET Core, .NET 8, Node.js, Express, FastAPI, Django, RESTful APIs, gRPC, WebSockets, event-driven architecture, stream processing
+Languages: Python, C#, TypeScript, JavaScript (ES6+), SQL, Go (learning)
+Backend: Python (FastAPI, Django), ASP.NET Core, .NET 8, Node.js, Express, RESTful APIs, gRPC, WebSockets, event-driven architecture, stream processing
 Frontend: React, Next.js, TypeScript, Vite, Tailwind CSS, HTML5, CSS3
 AI & LLM: Claude API, Gemini, Groq, LLM Integration, Prompt Engineering, Multi-agent Systems, RAG, MCP, Evaluation Harnesses
 Databases: PostgreSQL, SQL Server, MongoDB, Redis, Supabase, Entity Framework Core, LINQ, Kafka (learning)
