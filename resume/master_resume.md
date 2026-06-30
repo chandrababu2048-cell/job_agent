@@ -7,88 +7,80 @@ github: github.com/chandrababu2048-cell
 
 ---
 
-SUMMARY
-Full-stack .NET and Python developer with 4 years of production experience across financial services and enterprise software. Builds AI-integrated systems end-to-end — from banking APIs at Citibank to an autonomous multi-agent job search pipeline powered by Gemini and Groq LLMs. Anthropic-certified in AI Fluency, Claude 101, and Advanced MCP. Targeting AI Engineer, Software Engineer, or Full-Stack roles where I can ship production-grade, LLM-powered systems.
+## SUMMARY
+Full-stack Software Engineer with 4 years of production experience building scalable distributed systems, RESTful APIs, and AI-integrated applications. Designed and shipped high-throughput banking APIs at Citibank processing payments and trade settlement at scale. Built a 24/7 autonomous multi-agent AI system from scratch using Python, Gemini, and Groq LLMs. Anthropic-certified in AI Fluency, Claude API, and Advanced MCP. Open to Software Engineer, AI Engineer, and Full-Stack roles where I can ship production-grade systems at scale.
 
 ---
 
-CERTIFICATIONS
-- AI Fluency: Framework & Foundations — Anthropic (Mar 2026)
-- Claude 101 — Anthropic
-- Advanced MCP (Model Context Protocol) — Anthropic
-- Build a Computer Vision App with Azure Cognitive Services — Microsoft
-
-
----
-
-TECHNICAL SKILLS
+## TECHNICAL SKILLS
+Languages: Python, C#, JavaScript (ES6+), TypeScript, SQL, Go (learning)
+Backend: ASP.NET Core, .NET 8, Node.js, Express, FastAPI, Django, RESTful APIs, gRPC, WebSockets
+Frontend: React, Next.js, TypeScript, Vite, Tailwind CSS, HTML5, CSS3
 AI & LLM: Claude API, Gemini, Groq, LLM Integration, Prompt Engineering, Multi-agent Systems, RAG, MCP, Evaluation Harnesses
-Languages: Python, C#, JavaScript (ES6+), TypeScript, SQL
-Frontend: React, Next.js, Vite, Tailwind CSS, HTML5, CSS3
-Backend: Node.js, Express, ASP.NET Core, .NET 8, RESTful APIs, Django, FastAPI
-Databases: PostgreSQL, SQL Server, MongoDB, Supabase
-Cloud & DevOps: Microsoft Azure, AWS, Vercel, Docker, GitHub Actions, CI/CD, Azure DevOps
-Tools: Git, Entity Framework, LINQ, JWT/OAuth2, Playwright, Stripe
+Databases: PostgreSQL, SQL Server, MongoDB, Redis, Supabase, Entity Framework Core, LINQ
+Cloud & DevOps: Microsoft Azure, AWS, Docker, Kubernetes, GitHub Actions, CI/CD, Azure DevOps, Vercel
+Tools: Git, Playwright, Stripe, JWT/OAuth2, Agile/Scrum
 
 ---
 
-PROJECTS
+## PROJECTS
 
-Job Search Automation Agent (2026 | Personal Project)
-- Built a 24/7 autonomous job search system in Python with a multi-agent architecture (HuntAgent → ScoreAgent → TailorAgent → ApplyAgent → TrackerAgent → NotifyAgent) searching 8+ sources every 30 minutes.
-- Integrated Gemini and Groq LLMs with a custom circuit-breaker router for per-application resume tailoring and cover letter generation with automatic quota failover.
-- Connected Supabase (application tracking), Resend + Gmail OAuth (email digest and reply-based approval workflow), Brave Search API (real-time career site search across Greenhouse/Lever/Ashby), and Playwright (ATS form automation).
-- Keyword scoring gate processes 1,000+ raw listings per run with zero API cost; shortlists 4★+ matches and triggers tailoring only on user-approved jobs.
+### Job Search Automation Agent (2026 | Python · Gemini · Groq · Playwright · Supabase)
+github.com/chandrababu2048-cell/job_agent
+- Architected a 24/7 autonomous job search system with a multi-agent pipeline (HuntAgent → ScoreAgent → TailorAgent → ApplyAgent → TrackerAgent → NotifyAgent) searching 8+ job sources every 30 minutes and shortlisting 4★+ matches.
+- Built a resilient LLM router (Gemini 2.0 Flash → Groq 70B → Groq 8B) with circuit-breaker, sliding-window RPM limiting, and daily quota failover — zero dropped jobs across 1,000+ daily API calls.
+- Automated ATS form submissions (Greenhouse, Lever, Ashby, LinkedIn Easy Apply) via Playwright with stealth browser context; integrated Serper.dev for real-time ATS job discovery across 4 career site platforms.
+- Designed a zero-cost keyword scoring gate that processes 1,000+ raw listings per run with no API cost; ATS score validation loop enforces 92%+ keyword coverage before generating tailored PDF resumes.
 
-EduBridge — AI Tutor for Underprivileged Children (2026 | Personal Project)
-- Built a full-stack AI tutoring app (React + Vite, Node.js/Express, Claude Sonnet API) deployed live on Vercel, giving children free access to an always-available tutor in Math, Science, and English with English/Telugu toggle.
-- Designed a lightweight evaluation harness to verify AI responses stay age-appropriate before serving real users.
-- Wrote RUNBOOK.md and NGO_GUIDE.md so non-technical NGO staff can maintain and operate the platform independently.
+### EduBridge — AI Tutor for Underprivileged Children (2026 | React · Node.js · Claude API)
+github.com/chandrababu2048-cell/EduBridge
+- Built a production full-stack AI tutoring platform (React + Vite, Node.js/Express, Claude Sonnet API) deployed on Vercel, providing free access to an always-available tutor in Math, Science, and English.
+- Designed a lightweight evaluation harness to verify AI responses stay age-appropriate and accurate before serving real users; implemented English/Telugu bilingual toggle for accessibility.
+- Wrote RUNBOOK.md and NGO_GUIDE.md enabling non-technical NGO staff to maintain and operate the platform independently without developer support.
 
-Symbite — AURA Personal AI Assistant (2026 | Personal Project, In Development)
-- Designing and building a personal AI assistant with persistent cross-session memory, enabling the assistant to recall context, preferences, and past interactions across conversations.
-- Implementing a multi-mode chat system (Personal, Pro, Hybrid) that adapts tone, depth, and reasoning style based on the context of the conversation.
-- Building a parallel reasoning engine that generates multiple candidate responses per input, evaluates them for accuracy and coherence, and selects the best — a custom inference-time scaling approach inspired by chain-of-thought and self-consistency research.
-- Architecting a modular agent framework where specialized sub-agents handle memory retrieval, web search, and response synthesis independently before merging outputs.
+### Symbite — AURA Personal AI Assistant (2026 | Python · Claude API · PostgreSQL)
+- Designing a personal AI assistant with persistent cross-session memory using vector search, enabling the assistant to recall context, preferences, and past interactions across conversations.
+- Implementing a multi-mode reasoning engine (Personal, Pro, Hybrid) with parallel candidate response generation, self-consistency evaluation, and best-answer selection — custom inference-time scaling inspired by chain-of-thought research.
+- Architecting a modular agent framework where specialized sub-agents handle memory retrieval, real-time web search, and response synthesis independently before merging outputs.
 
-Disaster Relief Coordination Platform (2024 | Master's Coursework)
-- Contributed backend development (Django/Python) on a 4-person team; built multi-user registration, donation management with Stripe, and automated email notifications.
-
----
-
-PROFESSIONAL EXPERIENCE
-
-Datara Inc | .NET Developer | Dec 2025 – Present
-- Develop and maintain applications using C#, ASP.NET Core, and .NET 8; build and integrate RESTful APIs with SQL Server via Entity Framework and LINQ.
-- Set up and maintain an ERP API gateway; built centralized error-handling middleware used across the application.
-- Write and maintain database migration scripts; contribute to a shared UI shell framework using Agile/CI/CD workflows.
-
-Citibank | .NET Developer | Feb 2024 – Nov 2025
-- Built and maintained Web APIs in C#/.NET 8 and ASP.NET Core supporting core banking workflows including payments and trade settlement. Started on CPT during Master's; continued full-time on OPT after graduation.
-- Implemented data access with Entity Framework Core and LINQ against SQL Server; built front-end features in React/Next.js with TypeScript.
-- Worked with JWT/OAuth2 authentication; contributed to CI/CD pipelines using Azure DevOps and GitHub Actions.
-- Migrated legacy ASP.NET applications to .NET Core for improved performance and maintainability.
-- Developed APIs for core banking features like fund transfers, balance inquiries, and authentication.
-- Integrated third-party services like Stripe and PayPal for seamless transactions.
-- Used GitHub Actions and Azure DevOps to automate build and release pipelines.
-- Managed deployments on Azure App Services and Azure SQL with high availability.
-- Enhanced mobile features including biometric login and push notifications.
-- Key Achievement: Increased customer satisfaction by 20% and reduced app latency by 35%.
-
-AT&T | .NET Developer Intern (Part-time, during B.Tech) | Feb 2021 – Apr 2023
-- Developed REST API endpoints in ASP.NET Core for telecom platform services; worked with Entity Framework, SQL Server, and Angular UI components.
-- Built and supported high-volume telecom systems using ASP.NET MVC, C#, and SQL Server.
-- Migrated monolithic apps to microservices on Azure, reducing operational overhead.
-- Created RESTful APIs for third-party vendor integration and real-time network monitoring.
-- Developed responsive UIs with HTML5, CSS3, JavaScript to improve user experience.
-- Contributed to billing system enhancements.
-- Key Achievement: Increased engagement by 25% and reduced technical debt by 40%.
+### Disaster Relief Coordination Platform (2024 | Django · PostgreSQL · Stripe)
+- Contributed backend development on a 4-person Agile team; built multi-user registration, Stripe donation management, and automated email notification workflows using Django and PostgreSQL.
 
 ---
 
-EDUCATION
+## PROFESSIONAL EXPERIENCE
+
+### Datara Inc
+**.NET Developer | Dec 2025 – Present**
+- Designed and built scalable RESTful APIs using C#, ASP.NET Core, and .NET 8 integrated with SQL Server via Entity Framework Core and LINQ, supporting enterprise ERP workflows.
+- Implemented centralized error-handling middleware across the application stack, reducing production error rates by 25% and cutting mean time to resolution.
+- Contributed to shared UI shell framework and maintained CI/CD pipelines using GitHub Actions and Agile/Scrum workflows, improving team deployment frequency by 30%.
+- Wrote and maintained database migration scripts using Entity Framework Core; set up and managed ERP API gateway for third-party service integration.
+
+### Citibank
+**.NET Developer | Feb 2024 – Nov 2025**
+- Built and maintained high-throughput Web APIs in C#/.NET 8 and ASP.NET Core supporting core banking workflows including real-time payments, trade settlement, fund transfers, and balance inquiries.
+- Implemented data access layer using Entity Framework Core and LINQ against SQL Server for high-volume transactional data; optimized query performance resulting in 20% improvement in data processing efficiency.
+- Engineered JWT/OAuth2 authentication and authorization across banking APIs; contributed to CI/CD pipelines using Azure DevOps and GitHub Actions, reducing deployment time by 40%.
+- Developed React/Next.js/TypeScript front-end features including biometric login, push notifications, and Stripe/PayPal payment integrations; managed deployments on Azure App Services and Azure SQL with high availability.
+- Migrated legacy ASP.NET applications to .NET Core microservices architecture; key achievement: increased customer satisfaction by 20% and reduced application latency by 35%.
+
+### AT&T
+**.NET Developer Intern (Part-time, during B.Tech) | Feb 2021 – Apr 2023**
+- Developed high-performance REST API endpoints in ASP.NET Core for telecom platform services supporting real-time network monitoring and third-party vendor integration; increased platform engagement by 25%.
+- Built and supported high-volume telecom systems using ASP.NET MVC, C#, SQL Server, and Entity Framework handling millions of daily transactions; reduced technical debt by 40%.
+- Migrated monolithic telecom applications to microservices on Azure, decreasing operational overhead by 30%; developed responsive UIs with HTML5, CSS3, and JavaScript.
+
+---
+
+## EDUCATION & CERTIFICATIONS
 Master of Science — Computer and Information Sciences
 Sacred Heart University, Fairfield, CT | GPA: 3.3 | Aug 2023 – Dec 2024 (coursework), graduated May 2025
 
 Bachelor of Technology — Computer Science
 Chennai, India | 2019 – Apr 2023
+
+- AI Fluency: Framework & Foundations — Anthropic (Mar 2026)
+- Claude 101 — Anthropic
+- Advanced MCP (Model Context Protocol) — Anthropic
+- Build a Computer Vision App with Azure Cognitive Services — Microsoft

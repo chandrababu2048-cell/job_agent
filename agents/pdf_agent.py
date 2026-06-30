@@ -1,5 +1,5 @@
 """
-PDFAgent — converts tailored markdown resume to clean ATS-friendly PDF.
+PDFAgent — converts tailored markdown resume to ATS-clean PDF.
 """
 
 import os
@@ -8,19 +8,19 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, HRFlowable
-)
-from reportlab.lib.enums import TA_CENTER
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
 
 class PDFAgent:
 
     def generate(self, tailored_resume_md: str, output_path: str) -> str:
         """Convert markdown resume to PDF. Returns output_path."""
-        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+        os.makedirs(
+            os.path.dirname(output_path) if os.path.dirname(output_path) else ".",
+            exist_ok=True,
+        )
 
-        # Fix header and HTML entities before rendering
         tailored_resume_md = self._preprocess(tailored_resume_md)
 
         doc = SimpleDocTemplate(
@@ -28,118 +28,141 @@ class PDFAgent:
             pagesize=letter,
             rightMargin=0.65 * inch,
             leftMargin=0.65 * inch,
-            topMargin=0.60 * inch,
-            bottomMargin=0.60 * inch,
+            topMargin=0.55 * inch,
+            bottomMargin=0.55 * inch,
         )
 
-        # ── Styles ─────────────────────────────────────────────────────────────
+        # ── Styles ────────────────────────────────────────────────────────────
         dark  = colors.HexColor("#1a1a2e")
-        mid   = colors.HexColor("#444444")
-        light = colors.HexColor("#666666")
+        mid   = colors.HexColor("#333333")
+        light = colors.HexColor("#555555")
 
-        name_style = ParagraphStyle("Name", fontName="Helvetica-Bold",
-                                    fontSize=18, textColor=dark,
-                                    spaceAfter=2, alignment=TA_CENTER)
-        contact_style = ParagraphStyle("Contact", fontName="Helvetica",
-                                       fontSize=9, textColor=light,
-                                       spaceAfter=6, alignment=TA_CENTER)
-        h1_style = ParagraphStyle("H1", fontName="Helvetica-Bold",
-                                  fontSize=11, textColor=dark,
-                                  spaceBefore=8, spaceAfter=2)
-        h2_style = ParagraphStyle("H2", fontName="Helvetica-Bold",
-                                  fontSize=10, textColor=dark,
-                                  spaceBefore=5, spaceAfter=1)
-        h3_style = ParagraphStyle("H3", fontName="Helvetica-BoldOblique",
-                                  fontSize=9.5, textColor=mid,
-                                  spaceBefore=3, spaceAfter=1)
-        body_style = ParagraphStyle("Body", fontName="Helvetica",
-                                    fontSize=9.5, textColor=mid,
-                                    spaceAfter=2, leading=13)
-        bullet_style = ParagraphStyle("Bullet", fontName="Helvetica",
-                                      fontSize=9.5, textColor=mid,
-                                      leftIndent=12, spaceAfter=1, leading=13)
+        name_style = ParagraphStyle(
+            "Name", fontName="Helvetica-Bold", fontSize=17,
+            textColor=dark, spaceAfter=1, alignment=TA_CENTER,
+        )
+        contact_style = ParagraphStyle(
+            "Contact", fontName="Helvetica", fontSize=8,
+            textColor=light, spaceAfter=1, alignment=TA_CENTER, leading=11,
+        )
+        h1_style = ParagraphStyle(
+            "H1", fontName="Helvetica-Bold", fontSize=10.5,
+            textColor=dark, spaceBefore=7, spaceAfter=2, alignment=TA_LEFT,
+        )
+        h2_style = ParagraphStyle(
+            "H2", fontName="Helvetica-Bold", fontSize=10,
+            textColor=dark, spaceBefore=4, spaceAfter=0,
+        )
+        date_style = ParagraphStyle(
+            "Date", fontName="Helvetica", fontSize=9,
+            textColor=light, spaceBefore=0, spaceAfter=1,
+        )
+        body_style = ParagraphStyle(
+            "Body", fontName="Helvetica", fontSize=9,
+            textColor=mid, spaceAfter=1, leading=12,
+        )
+        bullet_style = ParagraphStyle(
+            "Bullet", fontName="Helvetica", fontSize=9,
+            textColor=mid, leftIndent=10, spaceAfter=1, leading=12,
+        )
         divider_color = colors.HexColor("#cccccc")
 
-        story = []
-        lines = tailored_resume_md.strip().splitlines()
-        i = 0
+        story  = []
+        lines  = tailored_resume_md.strip().splitlines()
+        i      = 0
         first_h1 = True
 
         while i < len(lines):
             line = lines[i].rstrip()
 
-            # Name (first # heading)
+            # ── Name heading (first # line) ───────────────────────────────────
             if line.startswith("# ") and first_h1:
                 name = line[2:].strip()
-                story.append(Paragraph(name, name_style))
+                story.append(Paragraph(self._xml(name), name_style))
                 first_h1 = False
                 i += 1
-                # Collect contact line(s) immediately after name
-                contact_parts = []
+
+                # Collect contact fields immediately after name
+                contact_fields = []
                 while i < len(lines) and not lines[i].startswith("#") and lines[i].strip():
                     part = lines[i].strip().lstrip(">").strip()
-                    if part != "---":
-                        contact_parts.append(part)
+                    if part not in ("---", "***"):
+                        contact_fields.append(self._xml(part))
                     i += 1
-                if contact_parts:
-                    contact_text = "  ·  ".join(contact_parts)
-                    contact_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', contact_text)
-                    story.append(Paragraph(contact_text, contact_style))
+
+                # Split into 2 lines so it never overflows
+                if contact_fields:
+                    mid_pt = (len(contact_fields) + 1) // 2
+                    line1  = " · ".join(contact_fields[:mid_pt])
+                    line2  = " · ".join(contact_fields[mid_pt:])
+                    story.append(Paragraph(line1, contact_style))
+                    if line2:
+                        story.append(Paragraph(line2, contact_style))
+
+                story.append(Spacer(1, 3))
                 story.append(HRFlowable(width="100%", thickness=1.5,
-                                        color=dark, spaceAfter=4))
+                                        color=dark, spaceAfter=3))
                 continue
 
-            # Section heading (##)
+            # ── Section heading ##  ────────────────────────────────────────────
             if line.startswith("## "):
-                text = line[3:].strip().upper()
-                story.append(Spacer(1, 4))
+                text = self._xml(line[3:].strip().upper())
+                story.append(Spacer(1, 3))
                 story.append(Paragraph(text, h1_style))
                 story.append(HRFlowable(width="100%", thickness=0.5,
-                                        color=divider_color, spaceAfter=3))
+                                        color=divider_color, spaceAfter=2))
                 i += 1
                 continue
 
-            # Sub-heading (###)
+            # ── Sub-heading ###  (company name) ───────────────────────────────
             if line.startswith("### "):
-                text = line[4:].strip()
-                text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+                text = self._fmt(line[4:].strip())
+                story.append(Spacer(1, 3))
                 story.append(Paragraph(text, h2_style))
                 i += 1
                 continue
 
-            # Bullet point
+            # ── Bold line  **Title | Dates**  ─────────────────────────────────
+            if line.startswith("**") and line.endswith("**"):
+                text = self._fmt(line[2:-2].strip())
+                story.append(Paragraph(text, date_style))
+                i += 1
+                continue
+
+            # ── Pipe-separated experience line  Company | Title | Date  ───────
+            if "|" in line and not line.startswith("-") and not line.startswith("*"):
+                parts = [p.strip() for p in line.split("|")]
+                if len(parts) >= 2:
+                    company_text = self._fmt(parts[0])
+                    rest         = " | ".join(parts[1:])
+                    story.append(Spacer(1, 3))
+                    story.append(Paragraph(company_text, h2_style))
+                    story.append(Paragraph(self._xml(rest), date_style))
+                    i += 1
+                    continue
+
+            # ── Bullet ────────────────────────────────────────────────────────
             if line.startswith("- ") or line.startswith("* "):
-                text = line[2:].strip()
-                text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-                text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+                text = self._fmt(line[2:].strip())
                 story.append(Paragraph(f"• {text}", bullet_style))
                 i += 1
                 continue
 
-            # Bold line (job title / company)
-            if line.startswith("**") and line.endswith("**"):
-                text = line[2:-2].strip()
-                story.append(Paragraph(text, h3_style))
-                i += 1
-                continue
-
-            # Horizontal rule
+            # ── HR ────────────────────────────────────────────────────────────
             if line.strip() in ("---", "***", "___"):
                 story.append(HRFlowable(width="100%", thickness=0.3,
                                         color=divider_color, spaceAfter=2))
                 i += 1
                 continue
 
-            # Empty line
+            # ── Empty line ────────────────────────────────────────────────────
             if not line.strip():
-                story.append(Spacer(1, 3))
+                story.append(Spacer(1, 2))
                 i += 1
                 continue
 
-            # Regular paragraph
-            text = line.strip()
-            text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-            text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+            # ── Regular paragraph ─────────────────────────────────────────────
+            text = self._fmt(line.strip())
             if text:
                 story.append(Paragraph(text, body_style))
             i += 1
@@ -147,50 +170,57 @@ class PDFAgent:
         doc.build(story)
         return output_path
 
-    def _preprocess(self, md: str) -> str:
-        """Convert YAML frontmatter header to clean markdown; fix HTML entities."""
-        lines = md.splitlines()
+    # ── Helpers ───────────────────────────────────────────────────────────────
 
+    def _xml(self, text: str) -> str:
+        """Escape text for reportlab's XML parser."""
+        # Expand safe HTML entities first, then re-escape all bare & for XML
+        text = (text.replace("&amp;", "&")
+                    .replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&#39;", "'")
+                    .replace("&quot;", '"'))
+        # Re-escape: & not already part of a valid XML entity → &amp;
+        text = re.sub(r'&(?!(amp|lt|gt|quot|apos|#\d+);)', '&amp;', text)
+        return text
+
+    def _fmt(self, text: str) -> str:
+        """Escape + convert **bold** and *italic* markdown to reportlab XML tags."""
+        text = self._xml(text)
+        text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+        text = re.sub(r'\*(.*?)\*',     r'<i>\1</i>', text)
+        return text
+
+    def _preprocess(self, md: str) -> str:
+        """Convert YAML frontmatter to markdown heading + split contact into fields."""
+        lines     = md.splitlines()
         yaml_keys = {"name", "location", "phone", "email", "linkedin", "github"}
         header    = {}
         body_start = 0
 
-        for i, line in enumerate(lines):
+        for idx, line in enumerate(lines):
             stripped = line.strip()
             if stripped.startswith("#"):
-                body_start = i
+                body_start = idx
                 break
             if ":" in stripped:
                 key, _, val = stripped.partition(":")
                 k = key.strip().lower()
                 if k in yaml_keys:
                     header[k] = val.strip()
-                    body_start = i + 1
+                    body_start = idx + 1
 
-        if header:
-            name     = header.get("name", "")
-            location = header.get("location", "")
-            phone    = header.get("phone", "")
-            email    = header.get("email", "")
-            linkedin = header.get("linkedin", "")
-            github   = header.get("github", "")
+        if not header:
+            return md  # already in heading format
 
-            contact_parts = [p for p in [location, phone, email, linkedin, github] if p]
-            contact_line  = "  ·  ".join(contact_parts)
+        name     = header.get("name", "")
+        location = header.get("location", "")
+        phone    = header.get("phone", "")
+        email    = header.get("email", "")
+        linkedin = header.get("linkedin", "")
+        github   = header.get("github", "")
 
-            new_header = f"# {name}\n{contact_line}\n\n---\n"
-            body = "\n".join(lines[body_start:])
-            md = new_header + body
-
-        # Expand HTML entities the LLM may have introduced
-        md = (md.replace("&amp;", "&")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&#39;", "'")
-                .replace("&quot;", '"'))
-
-        # Re-escape bare & for reportlab's XML parser
-        # Keeps &amp; &lt; &gt; &quot; &apos; &#NNN; intact, escapes everything else
-        md = re.sub(r'&(?!(amp|lt|gt|quot|apos|#\d+);)', '&amp;', md)
-
-        return md
+        # Each contact field on its own line — PDF renderer splits them into 2 rows
+        contact_lines = "\n".join(p for p in [location, phone, email, linkedin, github] if p)
+        body = "\n".join(lines[body_start:])
+        return f"# {name}\n{contact_lines}\n\n---\n{body}"
