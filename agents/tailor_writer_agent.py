@@ -133,19 +133,21 @@ High-importance keywords (technologies, frameworks) MUST appear 2-3 times
 across different sections (summary + skills + bullet).
 
 RULE 2 — SUMMARY (3-4 sentences MAX):
-• Sentence 1: Open with what you DO and your years of experience + top 2 JD technologies — NOT "I am excited" or "I leverage" or "As a X"
-  GOOD: "Software Engineer with 4 years building distributed systems and REST APIs at Citibank and Datara."
-  BAD: "As a Senior Software Engineer, I leverage my expertise..." or "I am excited to bring my skills..."
-• Sentence 2: Most impressive quantified achievement directly relevant to this JD
-• Sentence 3: What specifically you'll do at {job['company']} — use their actual product/mission
-• No more than 4 sentences total. No buzzwords. No "I am excited".
+• Sentence 1: Open with what you DO and your years of experience + top 2 JD technologies — NOT "I am excited" or "I leverage" or "As a X" or "I will"
+  GOOD: "Software Engineer with 4 years building high-throughput distributed systems and REST APIs at Citibank and Datara, specializing in Python, microservices, and PostgreSQL."
+  BAD: "As a Senior Software Engineer..." or "I am excited..." or "I will design and build..." (never future tense)
+• Sentence 2: Most impressive quantified achievement directly relevant to this JD (past tense, with number)
+• Sentence 3: ONE sentence connecting your proven skills to {job['company']}'s specific mission/product (present tense — what you bring)
+• No more than 4 sentences. No buzzwords. No future tense. Write entirely in past/present tense.
 
 RULE 3 — SKILLS SECTION:
 • Reorder categories so the most JD-relevant ones come first
 • Every technology in the keyword list that the candidate knows MUST appear here
 • Use exact spelling from JD (e.g. if JD says "Node.js" don't write "NodeJS")
-• Also add process keywords the candidate does but may not have listed: "code reviews", "system design",
-  "unit testing", "integration testing", "observability", "logging", "monitoring" — if JD mentions them
+• Keep process/methodology keywords (code reviews, system design, unit testing, observability, logging,
+  monitoring) in the Tools row — but ONLY actual tools/practices the candidate genuinely uses, not a dump
+• Do NOT mix practices into the same row as specific tech tools — keep Tools row clean:
+  Tools: Git, Playwright, Stripe, JWT/OAuth2, Agile/Scrum, System Design, Code Reviews, Unit Testing
 
 RULE 4 — EXPERIENCE BULLETS:
 • Keep ALL employers, titles, dates exactly as master resume (never fabricate)

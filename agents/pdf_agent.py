@@ -39,11 +39,11 @@ class PDFAgent:
 
         name_style = ParagraphStyle(
             "Name", fontName="Helvetica-Bold", fontSize=17,
-            textColor=dark, spaceAfter=1, alignment=TA_CENTER,
+            textColor=dark, spaceAfter=5, alignment=TA_CENTER,
         )
         contact_style = ParagraphStyle(
             "Contact", fontName="Helvetica", fontSize=8,
-            textColor=light, spaceAfter=1, alignment=TA_CENTER, leading=11,
+            textColor=light, spaceAfter=2, alignment=TA_CENTER, leading=12,
         )
         h1_style = ParagraphStyle(
             "H1", fontName="Helvetica-Bold", fontSize=10.5,
