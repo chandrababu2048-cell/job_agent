@@ -113,8 +113,17 @@ def extract_keywords(jd_text: str) -> list[str]:
         if re.search(r'\b' + re.escape(tech) + r'\b', text, re.IGNORECASE):
             found.add(tech)
 
-    # Remove very short / generic words
-    return sorted(k for k in found if len(k) >= 3)
+    # Remove very short / generic words and job title phrases (not real ATS keywords)
+    title_patterns = re.compile(
+        r'^(?:senior|junior|lead|principal|staff|mid[- ]?level)?\s*'
+        r'(?:software|data|machine learning|frontend|backend|full[- ]?stack|platform)\s*'
+        r'(?:engineer(?:ing)?|developer|architect|manager|scientist|analyst)s?$',
+        re.IGNORECASE,
+    )
+    return sorted(
+        k for k in found
+        if len(k) >= 3 and not title_patterns.match(k.strip())
+    )
 
 
 def score(resume_md: str, keywords: list[str]) -> tuple[float, list[str]]:

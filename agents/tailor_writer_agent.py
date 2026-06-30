@@ -43,13 +43,18 @@ class TailorWriterAgent:
 
         # ── Step 4: retry if below 92% ────────────────────────────────────────
         if score < 92 and missing:
-            # Only retry with keywords that CAN plausibly fit the candidate's background
-            # Limit to 15 most important missing — don't force 100% (keyword stuffing)
-            retry_missing = missing[:15]
-            print(f"[TailorWriterAgent] Below 92% — surgically adding {len(retry_missing)} keywords…")
-            result = self._retry(job, resume_md, keywords, retry_missing)
-            if result["resume"]:
-                resume_md = result["resume"]
+            master_lower = self.master_resume.lower()
+            # Only retry with keywords that exist in the master resume
+            # Never force keywords the candidate doesn't actually have (no stuffing)
+            can_add  = [k for k in missing if k.lower() in master_lower]
+            wont_add = [k for k in missing if k.lower() not in master_lower]
+            if wont_add:
+                print(f"[TailorWriterAgent] Skipping {len(wont_add)} keywords not in candidate background: {wont_add[:8]}")
+            if can_add:
+                print(f"[TailorWriterAgent] Surgically adding {len(can_add)} truthful keywords…")
+                result = self._retry(job, resume_md, keywords, can_add[:12])
+                if result["resume"] and len(result["resume"]) > 300:
+                    resume_md = self._ensure_header(result["resume"])
             score2, missing2 = ats_scorer.score(resume_md, keywords)
             print(f"[TailorWriterAgent] ATS score after retry: {score2}% ({len(missing2)} missing)")
 
@@ -127,11 +132,13 @@ Every keyword in the list above MUST appear at least ONCE in the resume.
 High-importance keywords (technologies, frameworks) MUST appear 2-3 times
 across different sections (summary + skills + bullet).
 
-RULE 2 — SUMMARY (3-4 sentences):
-• Sentence 1: Use EXACT job title "{job['title']}" + top 3 keywords from the list
-• Sentence 2: Most impressive quantified achievement relevant to this role
-• Sentence 3: Connect your background directly to {job['company']}'s specific needs
-• Never write "companies like X" — write "at {job['company']}" or "for {job['company']}'s [specific product]"
+RULE 2 — SUMMARY (3-4 sentences MAX):
+• Sentence 1: Open with what you DO and your years of experience + top 2 JD technologies — NOT "I am excited" or "I leverage" or "As a X"
+  GOOD: "Software Engineer with 4 years building distributed systems and REST APIs at Citibank and Datara."
+  BAD: "As a Senior Software Engineer, I leverage my expertise..." or "I am excited to bring my skills..."
+• Sentence 2: Most impressive quantified achievement directly relevant to this JD
+• Sentence 3: What specifically you'll do at {job['company']} — use their actual product/mission
+• No more than 4 sentences total. No buzzwords. No "I am excited".
 
 RULE 3 — SKILLS SECTION:
 • Reorder categories so the most JD-relevant ones come first
@@ -243,7 +250,32 @@ Return ONLY the updated resume in markdown. No preamble, no explanation."""
 
         if len(resume) < 300:
             resume = self.master_resume
+
+        # If LLM dropped the YAML header, prepend it from master resume
+        resume = self._ensure_header(resume)
+
         return {"resume": resume, "cover_letter": cover}
+
+    def _ensure_header(self, resume: str) -> str:
+        """Prepend YAML contact header if LLM dropped it."""
+        yaml_keys = ("name:", "location:", "phone:", "email:", "linkedin:", "github:")
+        first200 = resume[:200]
+        if any(k in first200 for k in yaml_keys):
+            return resume  # already present
+
+        # Extract header lines from master_resume
+        header_lines = []
+        for line in self.master_resume.splitlines():
+            stripped = line.strip()
+            if stripped == "---" and header_lines:
+                break
+            if any(stripped.startswith(k) for k in yaml_keys):
+                header_lines.append(line)
+
+        if header_lines:
+            header = "\n".join(header_lines)
+            return header + "\n\n---\n\n" + resume
+        return resume
 
     # ── PDF generation ─────────────────────────────────────────────────────────
 

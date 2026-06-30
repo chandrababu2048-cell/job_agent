@@ -67,10 +67,11 @@ class PDFAgent:
         )
         divider_color = colors.HexColor("#cccccc")
 
-        story  = []
-        lines  = tailored_resume_md.strip().splitlines()
-        i      = 0
+        story    = []
+        lines    = tailored_resume_md.strip().splitlines()
+        i        = 0
         first_h1 = True
+        in_education = False   # tracks whether we're inside the EDUCATION section
 
         while i < len(lines):
             line = lines[i].rstrip()
@@ -106,7 +107,9 @@ class PDFAgent:
 
             # ── Section heading ##  ────────────────────────────────────────────
             if line.startswith("## "):
-                text = self._xml(line[3:].strip().upper())
+                section_name = line[3:].strip().upper()
+                in_education = "EDUCATION" in section_name
+                text = self._xml(section_name)
                 story.append(Spacer(1, 3))
                 story.append(Paragraph(text, h1_style))
                 story.append(HRFlowable(width="100%", thickness=0.5,
@@ -114,8 +117,8 @@ class PDFAgent:
                 i += 1
                 continue
 
-            # ── Sub-heading ###  (company name) ───────────────────────────────
-            if line.startswith("### "):
+            # ── Sub-heading ###  (company name — only in non-education sections) ─
+            if line.startswith("### ") and not in_education:
                 text = self._fmt(line[4:].strip())
                 story.append(Spacer(1, 3))
                 story.append(Paragraph(text, h2_style))
@@ -123,14 +126,15 @@ class PDFAgent:
                 continue
 
             # ── Bold line  **Title | Dates**  ─────────────────────────────────
-            if line.startswith("**") and line.endswith("**"):
+            if line.startswith("**") and line.endswith("**") and not in_education:
                 text = self._fmt(line[2:-2].strip())
                 story.append(Paragraph(text, date_style))
                 i += 1
                 continue
 
             # ── Pipe-separated experience line  Company | Title | Date  ───────
-            if "|" in line and not line.startswith("-") and not line.startswith("*"):
+            # Only in non-education sections (avoid mis-parsing "Sacred Heart | GPA: 3.3")
+            if "|" in line and not line.startswith("-") and not line.startswith("*") and not in_education:
                 parts = [p.strip() for p in line.split("|")]
                 if len(parts) >= 2:
                     company_text = self._fmt(parts[0])
