@@ -14,23 +14,23 @@ Full-stack Software Engineer with 4 years of production experience building scal
 
 ## TECHNICAL SKILLS
 Languages: Python, C#, JavaScript (ES6+), TypeScript, SQL, Go (learning)
-Backend: ASP.NET Core, .NET 8, Node.js, Express, FastAPI, Django, RESTful APIs, gRPC, WebSockets
+Backend: ASP.NET Core, .NET 8, Node.js, Express, FastAPI, Django, RESTful APIs, gRPC, WebSockets, event-driven architecture, stream processing
 Frontend: React, Next.js, TypeScript, Vite, Tailwind CSS, HTML5, CSS3
 AI & LLM: Claude API, Gemini, Groq, LLM Integration, Prompt Engineering, Multi-agent Systems, RAG, MCP, Evaluation Harnesses
-Databases: PostgreSQL, SQL Server, MongoDB, Redis, Supabase, Entity Framework Core, LINQ
-Cloud & DevOps: Microsoft Azure, AWS, Docker, Kubernetes, GitHub Actions, CI/CD, Azure DevOps, Vercel
-Tools: Git, Playwright, Stripe, JWT/OAuth2, Agile/Scrum
+Databases: PostgreSQL, SQL Server, MongoDB, Redis, Supabase, Entity Framework Core, LINQ, Kafka (learning)
+Cloud & DevOps: Microsoft Azure, AWS, GCP, Docker, Kubernetes, GitHub Actions, CI/CD, Azure DevOps, Vercel
+Tools: Git, Playwright, Stripe, JWT/OAuth2, Agile/Scrum, System Design, Code Reviews, Unit Testing, Integration Testing, Observability, Logging, Monitoring, Telemetry
 
 ---
 
 ## PROJECTS
 
-### Job Search Automation Agent (2026 | Python · Gemini · Groq · Playwright · Supabase)
+### Job Search Automation Agent (2026 | Python · Gemini · Groq · Playwright · Supabase · Redis)
 github.com/chandrababu2048-cell/job_agent
-- Architected a 24/7 autonomous job search system with a multi-agent pipeline (HuntAgent → ScoreAgent → TailorAgent → ApplyAgent → TrackerAgent → NotifyAgent) searching 8+ job sources every 30 minutes and shortlisting 4★+ matches.
-- Built a resilient LLM router (Gemini 2.0 Flash → Groq 70B → Groq 8B) with circuit-breaker, sliding-window RPM limiting, and daily quota failover — zero dropped jobs across 1,000+ daily API calls.
-- Automated ATS form submissions (Greenhouse, Lever, Ashby, LinkedIn Easy Apply) via Playwright with stealth browser context; integrated Serper.dev for real-time ATS job discovery across 4 career site platforms.
-- Designed a zero-cost keyword scoring gate that processes 1,000+ raw listings per run with no API cost; ATS score validation loop enforces 92%+ keyword coverage before generating tailored PDF resumes.
+- Architected a 24/7 event-driven pipeline with a multi-agent architecture (HuntAgent → ScoreAgent → TailorAgent → ApplyAgent → TrackerAgent → NotifyAgent) that continuously streams and processes 1,000+ job listings per run from 8+ sources using Python async queues and Supabase as the state store.
+- Built a resilient LLM router (Gemini 2.0 Flash → Groq 70B → Groq 8B) with circuit-breaker, sliding-window RPM limiting, and daily quota failover — zero dropped events across 1,000+ daily API calls with full observability via structured logging and monitoring.
+- Automated ATS form submissions (Greenhouse, Lever, Ashby, LinkedIn Easy Apply) via Playwright with stealth browser context; integrated Serper.dev for real-time stream processing of job discovery across 4 career site platforms.
+- Designed a zero-cost keyword scoring gate with an ATS validation loop enforcing 92%+ keyword coverage; performs system design reviews of each tailored resume before generating the final PDF.
 
 ### EduBridge — AI Tutor for Underprivileged Children (2026 | React · Node.js · Claude API)
 github.com/chandrababu2048-cell/EduBridge
@@ -52,10 +52,10 @@ github.com/chandrababu2048-cell/EduBridge
 
 ### Datara Inc
 **.NET Developer | Dec 2025 – Present**
-- Designed and built scalable RESTful APIs using C#, ASP.NET Core, and .NET 8 integrated with SQL Server via Entity Framework Core and LINQ, supporting enterprise ERP workflows.
-- Implemented centralized error-handling middleware across the application stack, reducing production error rates by 25% and cutting mean time to resolution.
-- Contributed to shared UI shell framework and maintained CI/CD pipelines using GitHub Actions and Agile/Scrum workflows, improving team deployment frequency by 30%.
-- Wrote and maintained database migration scripts using Entity Framework Core; set up and managed ERP API gateway for third-party service integration.
+- Designed and built scalable RESTful APIs using C#, ASP.NET Core, and .NET 8 integrated with SQL Server via Entity Framework Core and LINQ, supporting enterprise ERP workflows and high-throughput data pipelines.
+- Implemented centralized error-handling middleware with structured logging, monitoring, and telemetry across the application stack, reducing production error rates by 25%.
+- Contributed to shared UI shell framework; maintained CI/CD pipelines using GitHub Actions and Agile/Scrum workflows; enforced code reviews and unit testing standards, improving deployment frequency by 30%.
+- Wrote and maintained database migration scripts; set up ERP API gateway; wrote integration tests for third-party service integrations.
 
 ### Citibank
 **.NET Developer | Feb 2024 – Nov 2025**
