@@ -4,6 +4,8 @@ agent:
   max_per_day: 20
   max_per_week: 140
   search_interval_minutes: 30
+  auto_apply: true          # hunt → auto-approve → tailor → apply, no human step
+  auto_apply_min_score: 10  # only auto-apply jobs scoring >= this
 candidate:
   email: chandrababunaidu2048@gmail.com
   github: github.com/chandrababu2048-cell/EduBridge

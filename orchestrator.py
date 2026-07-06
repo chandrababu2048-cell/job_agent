@@ -95,20 +95,39 @@ def run_hunt():
         research = researcher.run(job.get("company", ""), job.get("title", ""), CONFIG)
         job["company_research"] = research
 
-    # Step 6: Log as pending_approval — safe in DB before any action
-    for job in to_shortlist:
-        tracker.log(job, status="pending_approval")
+    auto_apply      = CONFIG.get("agent", {}).get("auto_apply", False)
+    auto_min_score  = CONFIG.get("agent", {}).get("auto_apply_min_score", 10)
 
-    print(f"\n[Orchestrator] {len(to_shortlist)} jobs logged as pending_approval")
+    if auto_apply:
+        # Auto mode: skip approval step — log high-score jobs directly as approved
+        auto_jobs    = [j for j in to_shortlist if j.get("match_score", 0) >= auto_min_score]
+        review_jobs  = [j for j in to_shortlist if j.get("match_score", 0) < auto_min_score]
 
-    # Step 7: Send approval digest email
-    try:
-        NotifyAgent(CONFIG).send_approval_digest(to_shortlist)
-    except Exception as e:
-        print(f"[Orchestrator] Digest email error: {e}")
+        for job in auto_jobs:
+            tracker.log(job, status="approved")
+        for job in review_jobs:
+            tracker.log(job, status="pending_approval")
 
-    print(f"\n[Orchestrator] Hunt done. Reply to the digest email with YES/NO/EDIT.")
-    print(f"  Or run: python cli.py pending")
+        print(f"\n[Orchestrator] AUTO MODE: {len(auto_jobs)} approved instantly "
+              f"(score ≥ {auto_min_score}), {len(review_jobs)} sent for review")
+
+        # Immediately tailor + apply without waiting
+        if auto_jobs:
+            run_tailor()
+    else:
+        # Manual mode: send approval digest, wait for YES/NO email reply
+        for job in to_shortlist:
+            tracker.log(job, status="pending_approval")
+
+        print(f"\n[Orchestrator] {len(to_shortlist)} jobs logged as pending_approval")
+
+        try:
+            NotifyAgent(CONFIG).send_approval_digest(to_shortlist)
+        except Exception as e:
+            print(f"[Orchestrator] Digest email error: {e}")
+
+        print(f"\n[Orchestrator] Hunt done. Reply to the digest email with YES/NO/EDIT.")
+        print(f"  Or run: python cli.py pending")
 
 
 # ── TAILOR ────────────────────────────────────────────────────────────────────
