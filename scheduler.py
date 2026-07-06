@@ -26,7 +26,7 @@ os.makedirs("logs", exist_ok=True)
 def _run(mode: str):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     print(f"\n[Scheduler] {ts} → {mode}", flush=True)
-    env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    env = {**os.environ, "PYTHONUNBUFFERED": "1", "MallocStackLogging": "0"}
     subprocess.run([sys.executable, "-u", "orchestrator.py", mode], env=env)
 
 

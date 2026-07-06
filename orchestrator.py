@@ -179,6 +179,14 @@ def run_tailor(filter_job_ids: list = None):
                 job["review_passed"] = True
                 job["review_notes"]  = "Review skipped"
 
+            # 3b. ATS score gate — don't send a weak resume
+            ats_score = float(job.get("ats_score") or 0)
+            if ats_score > 0 and ats_score < 85:
+                print(f"  [Orchestrator] ⚠️  ATS score {ats_score}% < 85% — skipping apply, keeping as approved")
+                print(f"  [Orchestrator]    Will retry when LLM quota resets.")
+                tracker.log(job, status="approved")
+                continue
+
             # 4. Apply
             result = applier.apply(job, job.get("resume_pdf_path"))
             job["apply_result"]  = result

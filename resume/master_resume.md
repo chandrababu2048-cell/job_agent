@@ -19,8 +19,8 @@ AI & LLM: Claude API, Gemini, Groq, Multi-agent Systems, Model Context Protocol 
 Vector & Search: pgvector, Supabase Vector, Vector Databases, Semantic Search, Embedding Pipelines
 Databases: PostgreSQL, SQL Server, MongoDB, Redis, Supabase, Entity Framework Core, LINQ, Kafka (learning)
 Frontend: React, Next.js, TypeScript, Vite, Tailwind CSS, HTML5, CSS3
-Cloud & DevOps: Microsoft Azure, AWS, GCP, Docker, Kubernetes, GitHub Actions, CI/CD, Azure DevOps, Vercel
-Tools: Git, Playwright, Stripe, JWT/OAuth2, Agile/Scrum, System Design, Code Reviews, Unit Testing, Integration Testing, Observability, Logging, Monitoring, Telemetry
+Cloud & DevOps: Microsoft Azure, AWS, GCP, Docker, Kubernetes, GitHub Actions, CI/CD, continuous integration, continuous deployment, Azure DevOps, Vercel
+Tools: Git, Playwright, Stripe, JWT/OAuth2, Agile/Scrum, test-driven development, system design, code reviews, unit testing, integration testing, observability, logging, monitoring, telemetry, API documentation, debugging
 
 ---
 
